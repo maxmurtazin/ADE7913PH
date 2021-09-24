@@ -135,7 +135,7 @@ AD7912.prototype.READ_V1 = function ()
 {
 var addr = this.ADE791X_REG_V1WV;
 var value = 0;  // stores value to return
-var tempValue1 = 0, 
+var tempValue1 = 0;
 var tempValue2 = 0 ;//, tempValue3 = 0;
 var opcode; // stores opcode
 
