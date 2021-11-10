@@ -2,7 +2,7 @@
 six chip ADE7912 
 Six electrodes
 to do
-1.Learn JS
+1.Learn JS- ok
 2.Draw scheme Draw to connect chips (in vector graphics)
 3.Make scheme on breadboard
 4.Write module to work with chips
