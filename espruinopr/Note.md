@@ -4,7 +4,7 @@ Six electrodes
 to do
 1.Learn JS- ok
 2.Draw scheme Draw to connect chips (in vector graphics)
-3.Make scheme on breadboard
+3.Make scheme on breadboard ok
 4.Write module to work with chips
 4.1.Write to work with one chip
 4.2. Write to work with six chips
