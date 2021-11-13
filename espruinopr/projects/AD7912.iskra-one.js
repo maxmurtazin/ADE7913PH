@@ -3,8 +3,8 @@ const CSpin = B1; //select chip
 const DRpin = C3; //data ready pin
 SPI1.setup({mosi:A7, miso:A6, sck:A5, mode:3, baud: 9000, order:'msb'});//SPI setup
 //Commands
-const READ    =0x04;
-const WRITE   =0x00;
+const READ    =0x04; //?
+const WRITE   =0x00; // ?
 // Register Definitions p.38
 const IWV            =0x00;    /* Instantaneous value of Current I. */
 const V1WV           =0x01;    /* Instantaneous value of Voltage V1 */
