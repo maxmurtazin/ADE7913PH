@@ -1,5 +1,6 @@
 /*
   This example controls an Analog Devices ADE7913 energy monitor.
+
   The circuit (For details see PDF schematic)
   ==================================================================================
   Arduino Mega    --    ADE7913 (NB: All connections made via TXB0108 5V-3V3 Shifter
@@ -14,8 +15,10 @@
   ICSP-3          --    SCLK
   ICSP-4          --    MOSI
   ===================================================================================
+
   This code is in the public domain, no guarantees of performance and all that:
   
+
   Credit to Corgitronics for getting me started with his github code:
   https://github.com/corgitronics/Arduino/blob/master/ADE7913_average/ADE7913_average.ino
   https://corgitronics.com/
@@ -397,3 +400,4 @@ void extendSignBit(volatile threeByteWord *wordIn) {
     wordIn->bytes[3] = 0b11111111;
   }
 }
+

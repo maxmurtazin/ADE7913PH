@@ -171,6 +171,7 @@ AD7705.prototype.dataReady = function(
 AD7705.prototype.readDataRegister = function() {
   this.uint8 = this.SPI.send([0x00, 0x00], this.CSpin);
   var r = this.uint8[0] << 8 | this.uint8[1];
+  var r = this.uint8[0] << 8 | this.uint8[1];
   console.log('r',r)
   return r;
 };

@@ -36,7 +36,7 @@ ade7912.resetDevices();
 ade7912.initDevices();
 
 setInterval(function() {
-  v1 = ade7912.readADResult(ph1.cs,e7912.ch);
+  v1 = ade7912.readADResult(ph1.cs,ph1.ch);
   console.log('v1', v1);
 }, READ_LOOP);
 

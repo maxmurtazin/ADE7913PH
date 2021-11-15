@@ -14,7 +14,7 @@ var ADE7912 = function (c) {
     this.misoPin = misoPin || A6; //P2
     this.sckPin = sckPin || A5; //A5
 
-    this.uint8 = new Uint8Array(2); ??
+   // this.uint8 = new Uint8Array(2); ??
 };
 
 ADE7912.prototype.init = function() {
@@ -34,8 +34,8 @@ ADE7912.prototype.WRITE =0x00; // ?
 ADE7912.prototype.IWV            =0x00;    /* Instantaneous value of Current I. */
 ADE7912.prototype.V1WV           =0x01;    /* Instantaneous value of Voltage V1 */
 ADE7912.prototype.V2WV           =0x02;    /* Instantaneous value of Voltage V2 */
-// math operatiion
 
+// math operatiion
 ADE7912.prototype.MUL_V1WV           =0.006485; //For V1WV 5,320,000 reading = 34.5V  (Multiplier = 0.006485) mV
 ADE7912.prototype.OFFSET_V1WV        =362760;
 ADE7912.prototype.MUL_VIMWV          =0.0011901;
@@ -93,13 +93,36 @@ ADE7912.prototype.SLOT6 =0x80;
 
 // METHODS:
 
-ADE7912.prototype.SOME = function( ) {
+//Unlock Config reg
+ADE7912.prototype.UNLOCK_REG() {
+    this.writeADE7912 (this.LOCK, this.UNLOCKED);
+    console.log('Registers unlocked!')
+}
 
+ADE7912.prototype.LOCK_REG() {
+    this.writeADE7912 (this.LOCK, this.LOCKED);
+    console.log('Registers unlocked!')
+}
+
+
+
+ADE7912.prototype.writeADE7912 (writeREG, writeDATA) {
+    digitalWrite(this.CSpin,0);
+    this.SPI.write(writeREG, writeDATA);
+    digitalWrite(this.CSpin,1);
+}
+
+
+// ADE7912.prototype.REAR_V1 = function() {
+//   var addr = this.V1WV;
+// };
+
+//Sync multyple chips ADE7912
+ADE7912.prototype.syncADE7912 (){
+  this.UNLOCK_REG();
+  this.writeADE7912 (this.SYNC_SNAP, 0b00000001);???
+  this.LOCK_REG ();
 };
-
-
-
-
 
 ///EXPORTS
 exports.device = function(c) {
