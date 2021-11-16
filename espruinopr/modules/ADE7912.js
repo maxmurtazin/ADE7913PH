@@ -1,5 +1,6 @@
 /*
  library for ADE7912 ADC (Analog devices)  (espruino)
+ library for multiple chips
 */
 
 // iskra js pins
@@ -14,7 +15,10 @@ var ADE7912 = function (c) {
     this.misoPin = misoPin || A6; //P2
     this.sckPin = sckPin || A5; //A5
 
-   // this.uint8 = new Uint8Array(2); ??
+    this.uint8 = new Uint8Array(2); ??
+    this.uint16 = new Uint16Array (2);
+    this.uint24 = new Uint24Array(2);
+
 };
 
 ADE7912.prototype.init = function() {
@@ -36,12 +40,12 @@ ADE7912.prototype.V1WV           =0x01;    /* Instantaneous value of Voltage V1 
 ADE7912.prototype.V2WV           =0x02;    /* Instantaneous value of Voltage V2 */
 
 // math operatiion
-ADE7912.prototype.MUL_V1WV           =0.006485; //For V1WV 5,320,000 reading = 34.5V  (Multiplier = 0.006485) mV
-ADE7912.prototype.OFFSET_V1WV        =362760;
-ADE7912.prototype.MUL_VIMWV          =0.0011901;
-ADE7912.prototype.OFFSET_VIMWV       =349319;
-ADE7912.prototype.MUL_IWV            =0.0005921;
-ADE7912.prototype.OFFSET_IWV         =349319;
+// ADE7912.prototype.MUL_V1WV           =0.006485; //For V1WV 5,320,000 reading = 34.5V  (Multiplier = 0.006485) mV
+// ADE7912.prototype.OFFSET_V1WV        =362760;
+// ADE7912.prototype.MUL_VIMWV          =0.0011901;
+// ADE7912.prototype.OFFSET_VIMWV       =349319;
+// ADE7912.prototype.MUL_IWV            =0.0005921;
+// ADE7912.prototype.OFFSET_IWV         =349319;
 
 // Register list p.38
 ADE7912.prototype.ADC_CRC        =0x04;    /* CRC value of IWV, V1WV, and V2WV registers. See the ADC Output Values CRC section for details */
@@ -93,6 +97,42 @@ ADE7912.prototype.SLOT6 =0x80;
 
 // METHODS:
 
+// Write a register to ADE7913, assume SPI.beginTransaction already called
+// include read-back test, and loop until correctly set (or nMaxWriteTry reached)!
+ADE7912.prototype.writeADE7912_check(writeTo, writeMsg, readFrom) {
+    var success = false;
+    var nTry = 0;
+    do {
+        digitalWrite(this.CSpin, 0);
+        this.SPI.send(writeTo);
+        this.SPI.send(writeTo);
+        digitalWrite(this.CSpin, 1);
+
+        var readBack[1];
+        this.readMultBytesADE7913(readFrom, readBack, 1);
+        success = (readBack[0] == writeMsg);
+        nTry++;
+
+    }  while ((!success) && nTry < nMaxWriteTry);
+    return success;
+}
+
+// Set the EMI_CTRL register; and check written correctly:
+var writeSuccess = this.writeADE7912_check(EMI_CTRL,0b01010101,EMI_CTRL);
+
+this.readMultBytes(EMI_CTRL, EMI_CTRL, 1)
+if (writeSuccess){
+    Console.log("EMI_CTRL write success!");
+} else {
+    console.log("ERROR: EMI_CTRL Write Failed");
+    while (true) {};///???
+}
+
+// Execute a SYNC_SNAP = 0x01 write broadcast, NB will be cleared to 0x00 after 1 CLK cycle
+writeADE7912(this.SYNC_SNAP, 0b00000001)
+console.log("SYNC_SNAP Register Set!");
+
+
 //Unlock Config reg
 ADE7912.prototype.UNLOCK_REG() {
     this.writeADE7912 (this.LOCK, this.UNLOCKED);
@@ -101,7 +141,7 @@ ADE7912.prototype.UNLOCK_REG() {
 
 ADE7912.prototype.LOCK_REG() {
     this.writeADE7912 (this.LOCK, this.LOCKED);
-    console.log('Registers unlocked!')
+    console.log('Registers locked!')
 }
 
 
@@ -122,7 +162,39 @@ ADE7912.prototype.syncADE7912 (){
   this.UNLOCK_REG();
   this.writeADE7912 (this.SYNC_SNAP, 0b00000001);???
   this.LOCK_REG ();
-};
+}
+
+// Read multiple bytes from ADE7913, assume SPI.beginTransaction already called
+// COMMENTED OUT: (try multiple times till a non-all-ones answer found)
+ADE7912.prototype.readMultBytes (readFrom, readTo[], nBytes) {
+    var idx = nBytes-1;
+    digitalWrite(this.CSpin, 0);
+    this.SPI.write(readFrom);
+    while (idx>= 0) {
+        readTo[idx]=this.SPI.write(0x00);
+        idx--;
+    }
+    digitalWrite(this.CSpin,1);
+}
+// READ VALUES IN BURST MODE:
+ADE7912.dataReady_ISR (){ //?????
+
+    digitalWrite(this.CSpin, 0);
+    this.SPI.write(this.WRITE);//?
+
+    this.uint24[0] = this.SPI.send(0x00);
+    this.uint24[1] = this.SPI.send(0x00);
+    this.uint24[2] = this.SPI.send(0x00);
+
+    this.uint16 [0] = this.SPI.send(0x00);
+    this.uint16 [1] = this.SPI.send(0x00);
+
+    this.uint8 [2] = this.SPI.send(0x00);
+
+
+    digitalWrite(CSpin, 1);
+
+}
 
 ///EXPORTS
 exports.device = function(c) {
