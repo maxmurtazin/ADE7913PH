@@ -57,7 +57,7 @@ var Channel = function(c) {
     default:
       ch = this.CHN_AIN1;
       break;
-  };
+  }
   this.channel = ch;
 };
 

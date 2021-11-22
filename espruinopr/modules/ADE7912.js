@@ -2,7 +2,6 @@
  library for ADE7912 ADC (Analog devices)  (espruino)
  library for multiple chips
 */
-
 // iskra js pins
 let ADE7912 = function (c) {
     c = c || {};
@@ -18,7 +17,6 @@ let ADE7912 = function (c) {
     this.uint8 = new Uint8Array(2); //??
     this.uint16 = new Uint16Array(2);
     this.uint24 = new Uint24Array(2); //espruino function
-
 };
 
 ADE7912.prototype.init = function() { //hardware SPI
@@ -40,12 +38,12 @@ ADE7912.prototype.V1WV           =0x01;    /* Instantaneous value of Voltage V1 
 ADE7912.prototype.V2WV           =0x02;    /* Instantaneous value of Voltage V2 */
 
 // math operatiion
-// ADE7912.prototype.MUL_V1WV           =0.006485; //For V1WV 5,320,000 reading = 34.5V  (Multiplier = 0.006485) mV
-// ADE7912.prototype.OFFSET_V1WV        =362760;
-// ADE7912.prototype.MUL_VIMWV          =0.0011901;
-// ADE7912.prototype.OFFSET_VIMWV       =349319;
-// ADE7912.prototype.MUL_IWV            =0.0005921;
-// ADE7912.prototype.OFFSET_IWV         =349319;
+ADE7912.prototype.MUL_V1WV           =0.006485; //For V1WV 5,320,000 reading = 34.5V  (Multiplier = 0.006485) mV
+ADE7912.prototype.OFFSET_V1WV        =362760;
+ADE7912.prototype.MUL_VIMWV          =0.0011901;
+ADE7912.prototype.OFFSET_VIMWV       =349319;
+ADE7912.prototype.MUL_IWV            =0.0005921;
+ADE7912.prototype.OFFSET_IWV         =349319;
 
 // Register list p.38
 ADE7912.prototype.ADC_CRC        =0x04;    /* CRC value of IWV, V1WV, and V2WV registers. See the ADC Output Values CRC section for details */
@@ -94,15 +92,112 @@ ADE7912.prototype.SLOT4 =0x10;
 ADE7912.prototype.SLOT5 =0x20;
 ADE7912.prototype.SLOT6 =0x40;
 ADE7912.prototype.SLOT6 =0x80;
+//////////////////////////////////////////////////////
 
+// Settings for writing updates to serial, and ADE7913 syncing:
+// define as volatile all variables to be updated from iterrupt service routine
+
+ADE7912.prototype.writePeriodMillis = 2000;
+ADE7912.prototype.syncPeriodMillis = 10000;
+ADE7912.prototype.previousWriteMillis = 0;
+ADE7912.prototype.previousSyncMillis = 0;
+ADE7912.prototype.rdDelayMicros  = 0;
+ADE7912.prototype.nMaxWriteTry = 100;
+
+let microsForBurstRead;
+let micetweenReads;
+let microsPreviousRead;
+
+// Local copies of ADC readings, updated on dataReady interrupt
+let nReads = 0;
+let IWV;
+let V1WV;
+let V2WV;
+let ADC_CRC=ADC_CRC[2];
+let STATUS0=STATUS0[1];
+let CNT_SNAPSHOT=CNT_SNAPSHOT[2];
+let ADC_CRC_burst=ADC_CRC_burst[2];
+let CONFIG=CONFIG[1];
+let TEMPOS=TEMPOS[1];
+let EMI_CTRL=EMI_CTRL[1];
+
+
+
+}
 // METHODS:
+ADE7912.prototype.bitRead=function (number, index) {
+    let binary = number.toString(2);
+    return (binary[(binary.length - 1) - index] == "1"); // index backwards
+}
+
+
+// Read STATUS0 register, until Bit 0 (RESET_ON) is cleared:
+let STATUS0[0] = 0b11111111;
+let nTry = 0;
+do {
+    readMultBytes(this.STATUS0, STATUS0[0]); //????
+    nTry++;
+    }
+while (this.bitRead(this.STATUS0, STATUS0[0],0) && nTry<this.nMaxWriteTry);
+// Check if bit succusfully cleared
+if (bitRead(STATUS0[0], 0)) {
+    console.log("ERROR: RESET_ON bit NOT cleared, nTry: ");
+    console.log(nTry);
+    console.log("STATUS0[0]: ");
+    console.log(STATUS0[0].toString(2));
+    while (true) {}  // LOOP forever  on failure
+} else {
+    console.log("RESET_ON bit cleared, nTry: ");
+    console.log(nTry);
+    console.log("STATUS0[0]: ");
+    console.log(STATUS0[0].toString(2));
+}
+
+this.UNLOCK_REG()
+// Initialize CONFIG register with bit 0 (CLKOUT_EN) cleared (to 0)
+// as CLKOUT unecessary (we provide it from ardiuno)
+// also SET TEMP_EN (bit 3) so temperature can be measured (we're not using V2P)
+// SET ADC_FREQ (bit 5:4) to 11 (1kHz for debugging), otherwise 00 (8kHx) for running
+
+let writeSuccess = writeADE7913_check(this.CONFIG, 0b00001000, CONFIG); ///??????
+if (writeSuccess) {
+    console.log("CONFIG write success!");
+    console.log("CONFIG[0]: "); Serial.println(CONFIG[0].toString(2));
+} else {
+    console.log("ERROR: CONFIG Write Failed");
+    console.log("CONFIG[0]: ");
+    console.log(CONFIG[0].toString(2));
+    while (true) {}  // LOOP forever  on failure
+}
+
+// // Read temperature offset register:
+// this.readMultBytes(TEMPOS, TEMPOS, 1);
+// console.log("TEMPOS: ");
+// console.log( TEMPOS[0]);
+
+// Set the EMI_CTRL register; and check written correctly:
+let writeSuccess = this.writeADE7913_check(EMI_CTRL_WRITE, 0b01010101, EMI_CTRL_READ);
+
+this.readMultBytesADE7913(EMI_CTRL_READ, EMI_CTRL, 1);
+if (writeSuccess) {
+    Serial.println("EMI_CTRL write success!");
+    Serial.print("EMI_CTRL[0]: ");
+    Serial.print(EMI_CTRL[0].toString(2));
+} else {
+    Serial.println("ERROR: EMI_CTRL Write Failed");
+    Serial.print("EMI_CTRL[0]: ");
+    Serial.println(EMI_CTRL[0].toString(2));
+    while (true) {}  // LOOP forever  on failure
+}
+
 
 // Write a register to ADE7913, assume SPI.beginTransaction already called
 // include read-back test, and loop until correctly set (or nMaxWriteTry reached)!
 ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
+
     let success = false;
     let nTry = 0;
-    let nMaxWriteTry;
+    //let nMaxWriteTry;
     do {
         digitalWrite(this.CSpin, 0)
         this.SPI.send(writeTo);
@@ -113,8 +208,7 @@ ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
         this.readMultBytes(readFrom, readBack, 1);
         success = (readBack[0] == writeMsg);
         nTry++;
-
-    }  while ((!success) && nTry < nMaxWriteTry);
+    }  while ((!success) && nTry < this.nMaxWriteTry);
     return success;
 }
 
@@ -128,6 +222,7 @@ if (writeSuccess){
     console.log("ERROR: EMI_CTRL Write Failed");
     while (true) {}///???
 }
+
 
 // Execute a SYNC_SNAP = 0x01 write broadcast, NB will be cleared to 0x00 after 1 CLK cycle
 writeADE7912(this.SYNC_SNAP, 0b00000001)
