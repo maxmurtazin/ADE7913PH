@@ -4,24 +4,24 @@
 */
 
 // iskra js pins
-var ADE7912 = function (c) {
+let ADE7912 = function (c) {
     c = c || {};
-
-    this.VRef = c.vref || 1.2;
-    this.CSpin = c.CSpin || B1;// P0
-    this.DRpin = c.DRpin || C3; //P9
-    this.SPI = c.SPI || SPI1;
+    // this.spiS = new c.SPI(); //software SPI
+    //this.VRef = c.vref || 1.2;
+    this.CSpin = c.CSpin || B11;// P0
+    this.DRpin = c.DRpin || C3; //P4
+    this.SPI = c.SPI || SPI1; // Hardware SPI
     this.mosiPin = mosiPin || A7; //P3
     this.misoPin = misoPin || A6; //P2
     this.sckPin = sckPin || A5; //A5
 
-    this.uint8 = new Uint8Array(2); ??
-    this.uint16 = new Uint16Array (2);
-    this.uint24 = new Uint24Array(2);
+    this.uint8 = new Uint8Array(2); //??
+    this.uint16 = new Uint16Array(2);
+    this.uint24 = new Uint24Array(2); //espruino function
 
 };
 
-ADE7912.prototype.init = function() {
+ADE7912.prototype.init = function() { //hardware SPI
     this.SPI.setup({
         mosi: this.mosiPin,
         miso: this.misoPin,
@@ -99,17 +99,18 @@ ADE7912.prototype.SLOT6 =0x80;
 
 // Write a register to ADE7913, assume SPI.beginTransaction already called
 // include read-back test, and loop until correctly set (or nMaxWriteTry reached)!
-ADE7912.prototype.writeADE7912_check(writeTo, writeMsg, readFrom) {
-    var success = false;
-    var nTry = 0;
+ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
+    let success = false;
+    let nTry = 0;
+    let nMaxWriteTry;
     do {
-        digitalWrite(this.CSpin, 0);
+        digitalWrite(this.CSpin, 0)
         this.SPI.send(writeTo);
         this.SPI.send(writeTo);
         digitalWrite(this.CSpin, 1);
 
-        var readBack[1];
-        this.readMultBytesADE7913(readFrom, readBack, 1);
+        let readBack[1];// ????????????????????
+        this.readMultBytes(readFrom, readBack, 1);
         success = (readBack[0] == writeMsg);
         nTry++;
 
@@ -118,14 +119,14 @@ ADE7912.prototype.writeADE7912_check(writeTo, writeMsg, readFrom) {
 }
 
 // Set the EMI_CTRL register; and check written correctly:
-var writeSuccess = this.writeADE7912_check(EMI_CTRL,0b01010101,EMI_CTRL);
+let writeSuccess = this.writeADE7912_check(EMI_CTRL, 0b01010101, EMI_CTRL);
 
 this.readMultBytes(EMI_CTRL, EMI_CTRL, 1)
 if (writeSuccess){
     Console.log("EMI_CTRL write success!");
 } else {
     console.log("ERROR: EMI_CTRL Write Failed");
-    while (true) {};///???
+    while (true) {}///???
 }
 
 // Execute a SYNC_SNAP = 0x01 write broadcast, NB will be cleared to 0x00 after 1 CLK cycle
@@ -134,19 +135,18 @@ console.log("SYNC_SNAP Register Set!");
 
 
 //Unlock Config reg
-ADE7912.prototype.UNLOCK_REG() {
+ADE7912.prototype.UNLOCK_REG = function () {
     this.writeADE7912 (this.LOCK, this.UNLOCKED);
     console.log('Registers unlocked!')
 }
 
-ADE7912.prototype.LOCK_REG() {
+ADE7912.prototype.LOCK_REG = function () {
     this.writeADE7912 (this.LOCK, this.LOCKED);
     console.log('Registers locked!')
 }
 
 
-
-ADE7912.prototype.writeADE7912 (writeREG, writeDATA) {
+ADE7912.prototype.writeADE7912 = function (writeREG, writeDATA) {
     digitalWrite(this.CSpin,0);
     this.SPI.write(writeREG, writeDATA);
     digitalWrite(this.CSpin,1);
@@ -158,26 +158,28 @@ ADE7912.prototype.writeADE7912 (writeREG, writeDATA) {
 // };
 
 //Sync multyple chips ADE7912
-ADE7912.prototype.syncADE7912 (){
+ADE7912.prototype.syncADE7912  = function () {
   this.UNLOCK_REG();
-  this.writeADE7912 (this.SYNC_SNAP, 0b00000001);???
-  this.LOCK_REG ();
+  this.writeADE7912 (this.SYNC_SNAP, 0b00000001);//???
+  this.LOCK_REG();
 }
 
 // Read multiple bytes from ADE7913, assume SPI.beginTransaction already called
 // COMMENTED OUT: (try multiple times till a non-all-ones answer found)
-ADE7912.prototype.readMultBytes (readFrom, readTo[], nBytes) {
-    var idx = nBytes-1;
+ADE7912.prototype.readMultBytes = function (readFrom, readTo [], nBytes) {
+    let idx = nBytes - 1;
     digitalWrite(this.CSpin, 0);
+    let readFrom;
     this.SPI.write(readFrom);
     while (idx>= 0) {
+        let readTo;
         readTo[idx]=this.SPI.write(0x00);
         idx--;
     }
     digitalWrite(this.CSpin,1);
 }
 // READ VALUES IN BURST MODE:
-ADE7912.dataReady_ISR (){ //?????
+ADE7912.prototype.dataReady_ISR = function () { //?????
 
     digitalWrite(this.CSpin, 0);
     this.SPI.write(this.WRITE);//?
@@ -192,21 +194,21 @@ ADE7912.dataReady_ISR (){ //?????
     this.uint8 [2] = this.SPI.send(0x00);
 
 
-    digitalWrite(CSpin, 1);
+    digitalWrite(this.CSpin, 1);
 
 }
 
 ///EXPORTS
 exports.device = function(c) {
     c = c || {};
-    var ad = new ADE7912(c);
+    let ad = new ADE7912(c);
 
     return ad;
 };
 
 exports.channel = function(c) {
     c = c || {};
-    var ch = new Channel(c);
+    let ch = new Channel(c);
 
     return ch;
 };

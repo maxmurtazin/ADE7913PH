@@ -37,7 +37,7 @@ var AD7705 = function (c) {
 
 // Channel constructor
 var Channel = function(c) {
-  this = new AD7705(c);
+  *//this = new AD7705(c);
   var ch = 0;
   switch (c.channel) {
     case 'CHN_AIN2':

@@ -3,7 +3,7 @@ const READ_LOOP = 541; //ms (prime)
 const LED_LOOP = 2003; //ms (prime)
 const LED_RESPONSE_MS = 227; //ms (prime)
 
-var AD7705 = require('AD7705');
+var AD7705 = require('drafts/AD7705');
 
 // pH-meters //
 
