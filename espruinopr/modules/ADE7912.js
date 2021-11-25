@@ -190,6 +190,39 @@ if (writeSuccess) {
     while (true) {}  // LOOP forever  on failure
 }
 
+// LOOP
+ let currentMillis = getTime();
+let previousWriteMillis;
+if ((currentMillis - previousWriteMillis) > writePeriodMillis) {
+    // dettach interrupt so write won't be messed up
+    clearWatch();//ID??
+
+    previousWriteMillis = currentMillis;
+    this.writeToSerial(); //function
+    // re-attach interrupt
+    setWatch(this.dataReady_ISR(), this.DRpin, { repeat: true, edge: "falling" }); // LOW
+}
+
+let syncPeriodMillis;
+if ((currentMillis - previousSyncMillis) > syncPeriodMillis) {
+    // dettach interrupt so sync won't be messed up
+    clearWatch();//ID??
+
+    previousSyncMillis = currentMillis;
+    this.syncADE7912();
+    console.log("ADE7912 Synced");
+    // re-attach interrupt
+    attachInterrupt(digitalPinToInterrupt(dataReadyPin), dataReady_ISR, FALLING);// LOW
+    setWatch(this.dataReady_ISR(), this.DRpin, { repeat: true, edge: "falling" }); //true??
+
+}
+
+ADE7912.prototype.writeToSerial = function {
+
+}
+ADE7912.prototype.dataReady_ISR = function {
+
+}
 
 // Write a register to ADE7913, assume SPI.beginTransaction already called
 // include read-back test, and loop until correctly set (or nMaxWriteTry reached)!
