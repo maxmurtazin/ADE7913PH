@@ -113,17 +113,17 @@ let nReads = 0;
 let IWV;
 let V1WV;
 let V2WV;
-let ADC_CRC=ADC_CRC[2];
-let STATUS0=STATUS0[1];
-let CNT_SNAPSHOT=CNT_SNAPSHOT[2];
-let ADC_CRC_burst=ADC_CRC_burst[2];
-let CONFIG=CONFIG[1];
-let TEMPOS=TEMPOS[1];
-let EMI_CTRL=EMI_CTRL[1];
+let ADC_CRC=new Array (2);// ADC_CRC[2];
+let STATUS0= new Array (1); //STATUS0[1];
+let CNT_SNAPSHOT= new Array (2); //CNT_SNAPSHOT[2];
+let ADC_CRC_burst=new Array (2); //ADC_CRC_burst[2];
+let CONFIG=new Array (1); //CONFIG[1];
+let TEMPOS=new Array (1); //TEMPOS[1];
+let EMI_CTRL=new Array (1); //EMI_CTRL[1];
 
 
 
-}
+
 // METHODS:
 ADE7912.prototype.bitRead = function (number, index) {
     let binary = number.toString(2);
@@ -132,7 +132,7 @@ ADE7912.prototype.bitRead = function (number, index) {
 
 
 // Read STATUS0 register, until Bit 0 (RESET_ON) is cleared:
-let STATUS0[0] = 0b11111111;
+ STATUS0[0] = 0b11111111;
 let nTry = 0;
 do {
     readMultBytes(this.STATUS0, STATUS0[0]); //????
@@ -180,13 +180,13 @@ let writeSuccess = this.writeADE7913_check(EMI_CTRL_WRITE, 0b01010101, EMI_CTRL_
 
 this.readMultBytesADE7913(EMI_CTRL_READ, EMI_CTRL, 1);
 if (writeSuccess) {
-    Serial.println("EMI_CTRL write success!");
-    Serial.print("EMI_CTRL[0]: ");
-    Serial.print(EMI_CTRL[0].toString(2));
+    console.log("EMI_CTRL write success!");
+    console.log("EMI_CTRL[0]: ");
+    console.log(EMI_CTRL[0].toString(2));
 } else {
-    Serial.println("ERROR: EMI_CTRL Write Failed");
-    Serial.print("EMI_CTRL[0]: ");
-    Serial.println(EMI_CTRL[0].toString(2));
+    console.log("ERROR: EMI_CTRL Write Failed");
+    console.log("EMI_CTRL[0]: ");
+    console.log(EMI_CTRL[0].toString(2));
     while (true) {}  // LOOP forever  on failure
 }
 
@@ -235,7 +235,7 @@ ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
         this.SPI.send(writeTo);
         digitalWrite(this.CSpin, 1);
 
-        let readBack[1];// ????????????????????
+        let readBack = new Array (1) // readBack[1]  ????????????????????
         this.readMultBytes(readFrom, readBack, 1);
         success = (readBack[0] == writeMsg);
         nTry++;
@@ -292,7 +292,7 @@ ADE7912.prototype.syncADE7912  = function () {
 
 // Read multiple bytes from ADE7913, assume SPI.beginTransaction already called
 // COMMENTED OUT: (try multiple times till a non-all-ones answer found)
-ADE7912.prototype.readMultBytes = function (readFrom, readTo [], nBytes) {
+ADE7912.prototype.readMultBytes = function (readFrom, readTo [], nBytes) { //???
     let idx = nBytes - 1;
     digitalWrite(this.CSpin, 0);
     let readFrom;
