@@ -125,7 +125,7 @@ let EMI_CTRL=EMI_CTRL[1];
 
 }
 // METHODS:
-ADE7912.prototype.bitRead=function (number, index) {
+ADE7912.prototype.bitRead = function (number, index) {
     let binary = number.toString(2);
     return (binary[(binary.length - 1) - index] == "1"); // index backwards
 }
@@ -217,12 +217,10 @@ if ((currentMillis - previousSyncMillis) > syncPeriodMillis) {
 
 }
 
-ADE7912.prototype.writeToSerial = function {
+ADE7912.prototype.writeToSerial = function () {
 
 }
-ADE7912.prototype.dataReady_ISR = function {
 
-}
 
 // Write a register to ADE7913, assume SPI.beginTransaction already called
 // include read-back test, and loop until correctly set (or nMaxWriteTry reached)!
@@ -307,7 +305,11 @@ ADE7912.prototype.readMultBytes = function (readFrom, readTo [], nBytes) {
     digitalWrite(this.CSpin,1);
 }
 // READ VALUES IN BURST MODE:
-ADE7912.prototype.dataReady_ISR = function () { //?????
+ADE7912.prototype.dataReady_ISR = function () {
+    let microsBetweenReads;
+    microsBetweenReads = micros() - microsPreviousRead;
+    microsPreviousRead = micros();
+    nReads++;       // keep a track of No. of reads
 
     digitalWrite(this.CSpin, 0);
     this.SPI.write(this.WRITE);//?
@@ -323,6 +325,8 @@ ADE7912.prototype.dataReady_ISR = function () { //?????
 
 
     digitalWrite(this.CSpin, 1);
+    microsForBurstRead = micros() - microsPreviousRead;
+    return;
 
 }
 
