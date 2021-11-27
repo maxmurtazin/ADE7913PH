@@ -103,9 +103,10 @@ ADE7912.prototype.previousWriteMillis = 0;
 ADE7912.prototype.previousSyncMillis = 0;
 ADE7912.prototype.rdDelayMicros  = 0;
 ADE7912.prototype.nMaxWriteTry = 100;
+ADE7912.prototype.currentMillis = getTime();
 
 let microsForBurstRead;
-let micetweenReads;
+let microsBetweenReads;
 let microsPreviousRead;
 
 // Local copies of ADC readings, updated on dataReady interrupt
@@ -135,12 +136,12 @@ ADE7912.prototype.bitRead = function (number, index) {
  STATUS0[0] = 0b11111111;
 let nTry = 0;
 do {
-    readMultBytes(this.STATUS0, STATUS0[0]); //????
+    this.readMultBytes(this.STATUS0, STATUS0[0]); //????
     nTry++;
     }
 while (this.bitRead(this.STATUS0, STATUS0[0],0) && nTry<this.nMaxWriteTry);
 // Check if bit succusfully cleared
-if (bitRead(STATUS0[0], 0)) {
+if (this.bitRead(STATUS0[0], 0)) {
     console.log("ERROR: RESET_ON bit NOT cleared, nTry: ");
     console.log(nTry);
     console.log("STATUS0[0]: ");
@@ -159,7 +160,7 @@ this.UNLOCK_REG()
 // also SET TEMP_EN (bit 3) so temperature can be measured (we're not using V2P)
 // SET ADC_FREQ (bit 5:4) to 11 (1kHz for debugging), otherwise 00 (8kHx) for running
 
-let writeSuccess = writeADE7913_check(this.CONFIG, 0b00001000, CONFIG); ///??????
+let writeSuccess = this.writeADE7912_check(this.CONFIG, 0b00001000, this.CONFIG); ///??????
 if (writeSuccess) {
     console.log("CONFIG write success!");
     console.log("CONFIG[0]: "); Serial.println(CONFIG[0].toString(2));
@@ -191,28 +192,28 @@ if (writeSuccess) {
 }
 
 // LOOP
- let currentMillis = getTime();
-let previousWriteMillis;
-if ((currentMillis - previousWriteMillis) > writePeriodMillis) {
+ //let currentMillis = getTime();
+//let previousWriteMillis;
+if ((this.currentMillis - this.previousWriteMillis) > this.writePeriodMillis) {
     // dettach interrupt so write won't be messed up
     clearWatch();//ID??
 
-    previousWriteMillis = currentMillis;
+    this.previousWriteMillis = this.currentMillis;//?
     this.writeToSerial(); //function
     // re-attach interrupt
     setWatch(this.dataReady_ISR(), this.DRpin, { repeat: true, edge: "falling" }); // LOW
 }
 
-let syncPeriodMillis;
-if ((currentMillis - previousSyncMillis) > syncPeriodMillis) {
+//let syncPeriodMillis;
+if ((this.currentMillis - previousSyncMillis) > this.syncPeriodMillis) {
     // dettach interrupt so sync won't be messed up
     clearWatch();//ID??
 
-    previousSyncMillis = currentMillis;
+    this.previousSyncMillis = this.currentMillis;
     this.syncADE7912();
     console.log("ADE7912 Synced");
     // re-attach interrupt
-    attachInterrupt(digitalPinToInterrupt(dataReadyPin), dataReady_ISR, FALLING);// LOW
+    //attachInterrupt(digitalPinToInterrupt(dataReadyPin), dataReady_ISR, FALLING);// LOW
     setWatch(this.dataReady_ISR(), this.DRpin, { repeat: true, edge: "falling" }); //true??
 
 }
@@ -306,7 +307,7 @@ ADE7912.prototype.readMultBytes = function (readFrom, readTo, nBytes) { //???
 }
 // READ VALUES IN BURST MODE:
 ADE7912.prototype.dataReady_ISR = function () {
-    let microsBetweenReads;
+    //let microsBetweenReads;
     microsBetweenReads = micros() - microsPreviousRead;
     microsPreviousRead = micros();
     nReads++;       // keep a track of No. of reads
@@ -326,7 +327,7 @@ ADE7912.prototype.dataReady_ISR = function () {
 
     digitalWrite(this.CSpin, 1);
     microsForBurstRead = micros() - microsPreviousRead;
-    return;
+    //return;??
 
 }
 
