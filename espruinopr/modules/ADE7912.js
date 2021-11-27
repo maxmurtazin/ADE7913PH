@@ -292,14 +292,14 @@ ADE7912.prototype.syncADE7912  = function () {
 
 // Read multiple bytes from ADE7913, assume SPI.beginTransaction already called
 // COMMENTED OUT: (try multiple times till a non-all-ones answer found)
-ADE7912.prototype.readMultBytes = function (readFrom, readTo [], nBytes) { //???
+ADE7912.prototype.readMultBytes = function (readFrom, readTo, nBytes) { //???
     let idx = nBytes - 1;
     digitalWrite(this.CSpin, 0);
-    let readFrom;
-    this.SPI.write(readFrom);
+    //let readFrom;
+    this.SPI.write (readFrom);
     while (idx>= 0) {
-        let readTo;
-        readTo[idx]=this.SPI.write(0x00);
+        let readTo = new Array(idx);
+        readTo=this.SPI.write(0x00);
         idx--;
     }
     digitalWrite(this.CSpin,1);
