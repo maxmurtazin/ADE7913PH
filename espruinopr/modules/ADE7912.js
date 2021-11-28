@@ -30,68 +30,74 @@ ADE7912.prototype.init = function() { //hardware SPI
 };
 
 //Commands
-ADE7912.prototype.READ= 0x04; //?
-ADE7912.prototype.WRITE =0x00; // ?
+//ADE7912.prototype.READ= 0x04; //?
+//ADE7912.prototype.WRITE =0x00; // ?
+
 // Register Definitions p.38
-ADE7912.prototype.IWV            =0x00;    /* Instantaneous value of Current I. */
-ADE7912.prototype.V1WV           =0x01;    /* Instantaneous value of Voltage V1 */
-ADE7912.prototype.V2WV           =0x02;    /* Instantaneous value of Voltage V2 */
+ADE7912.prototype.IWV_READ            =(0x00<< 3 | 0b100);    /* Instantaneous value of Current I. */
+ADE7912.prototype.V1WV_READ           =(0x01<< 3 | 0b100);    /* Instantaneous value of Voltage V1 */
+ADE7912.prototype.V2WV_READ           =(0x02<< 3 | 0b100);    /* Instantaneous value of Voltage V2 */
 
 // math operatiion
-ADE7912.prototype.MUL_V1WV           =0.006485; //For V1WV 5,320,000 reading = 34.5V  (Multiplier = 0.006485) mV
-ADE7912.prototype.OFFSET_V1WV        =362760;
-ADE7912.prototype.MUL_VIMWV          =0.0011901;
-ADE7912.prototype.OFFSET_VIMWV       =349319;
-ADE7912.prototype.MUL_IWV            =0.0005921;
-ADE7912.prototype.OFFSET_IWV         =349319;
+// ADE7912.prototype.MUL_V1WV           =0.006485; //For V1WV 5,320,000 reading = 34.5V  (Multiplier = 0.006485) mV
+// ADE7912.prototype.OFFSET_V1WV        =362760;
+// ADE7912.prototype.MUL_VIMWV          =0.0011901;
+// ADE7912.prototype.OFFSET_VIMWV       =349319;
+// ADE7912.prototype.MUL_IWV            =0.0005921;
+// ADE7912.prototype.OFFSET_IWV         =349319;
 
 // Register list p.38
-ADE7912.prototype.ADC_CRC        =0x04;    /* CRC value of IWV, V1WV, and V2WV registers. See the ADC Output Values CRC section for details */
-ADE7912.prototype.CTRL_CRC       =0x05;    /* CRC value of configuration registers. See the CRC of Configuration Registers  for details. */
-ADE7912.prototype.CNT_SNAPSHOT   =0x07;    /* Snapshot value of the counter used in synchronization operation. */
-ADE7912.prototype.CONFIG         =0x08;    /* Configuration register. See Table 15 for details */
-ADE7912.prototype.STATUS0        =0x09;    /* Status register */
-ADE7912.prototype.LOCK           =0x0A;    /* Memory protection register */
-ADE7912.prototype.SYNC_SNAP      =0x0B;    /* Synchronization register */
-ADE7912.prototype.COUNTER0       =0x0C;    /* Contains the least significant eight bits of the internal synchronization counter */
-ADE7912.prototype.COUNTER1       =0x0D;    /* COUNTER1[3:0] bits contain the most significant four bits of the internal synchronization counter */
-ADE7912.prototype.EMI_CTRL       =0x0E;    /* EMI control register. */
-ADE7912.prototype.STATUS1        =0x0F;    /* Status register */
-ADE7912.prototype.REG_TEMPOS     =0x18;    /* Temperature sensor offset */
+ADE7912.prototype.ADC_CRC_READ        =(0x04<< 3 | 0b100);    /* CRC value of IWV, V1WV, and V2WV registers. See the ADC Output Values CRC section for details */
+//ADE7912.prototype.CTRL_CRC       =0x05;    /* CRC value of configuration registers. See the CRC of Configuration Registers  for details. */
+ADE7912.prototype.CNT_SNAPSHOT_READ   =(0x07<< 3 | 0b100);    /* Snapshot value of the counter used in synchronization operation. */
+ADE7912.prototype.CONFIG_READ         =(0x08 << 3 | 0b100);    /* Configuration register. See Table 15 for details */
+ADE7912.prototype.STATUS0_READ        =(0x09 << 3 | 0b100);    /* Status register */
+//ADE7912.prototype.LOCK           =0x0A;    /* Memory protection register */
+ADE7912.prototype.SYNC_SNAP_WRITE  =(0xB << 3 | 0b000);    /* Synchronization register */
+//ADE7912.prototype.COUNTER0       =0x0C;    /* Contains the least significant eight bits of the internal synchronization counter */
+//ADE7912.prototype.COUNTER1       =0x0D;    /* COUNTER1[3:0] bits contain the most significant four bits of the internal synchronization counter */
+ADE7912.prototype.EMI_CTRL_READ       =(0x0E << 3 | 0b100);    /* EMI control register. */
+//ADE7912.prototype.STATUS1        =0x0F;    /* Status register */
+ADE7912.prototype.TEMPOS_READ     = (0x18<< 3 | 0b100);    /* Temperature sensor offset */
 
+ADE7912.prototype.CONFIG_WRITE     =(0x8 << 3 | 0b000);
+ADE7912.prototype.EMI_CTRL_WRITE   =(0xE << 3 | 0b000);
+ADE7912.prototype.LOCK_KEY_WRITE   =(0xA << 3 | 0b000);
+ADE7912.prototype.DUMMY_MSG   =     0x00;
 /* configuration register constants */
-ADE7912.prototype.CLKOUT_EN                  =0x01;
-ADE7912.prototype.PWRDWN_EN                  =0x04;    /* Shuts down the dc-to-dc converter. When PWRDWN_EN = 0, the default value, the */
-ADE7912.prototype.TEMP_EN                    =0x08;    /* This bit selects the second voltage channel measurement. */
-ADE7912.prototype.ADC_FREQ_8KHZ              =0x00;    /* These bits select the ADC output frequency to 8khz. */
-ADE7912.prototype.ADC_FREQ_4KHZ              =0x10;    /* These bits select the ADC output frequency.4khz */
-ADE7912.prototype.ADC_FREQ_2KHZ              =0x20;    /* These bits select the ADC output frequency.2khz */
-ADE7912.prototype.ADC_FREQ_1KHZ              =0x30;    /* These bits select the ADC output frequency.1khz */
-ADE7912.prototype.SWRST                      =0x40;    /* When this bit is set to 1, a software reset is initiated. This bit clears itself to 0 after */
-ADE7912.prototype.BW                         =0x80;    /* Selects the bandwidth of the digital low-pass filter of the ADC. When BW = 0, the */
+// ADE7912.prototype.CLKOUT_EN                  =0x01;
+// ADE7912.prototype.PWRDWN_EN                  =0x04;    /* Shuts down the dc-to-dc converter. When PWRDWN_EN = 0, the default value, the */
+// ADE7912.prototype.TEMP_EN                    =0x08;    /* This bit selects the second voltage channel measurement. */
+// ADE7912.prototype.ADC_FREQ_8KHZ              =0x00;    /* These bits select the ADC output frequency to 8khz. */
+// ADE7912.prototype.ADC_FREQ_4KHZ              =0x10;    /* These bits select the ADC output frequency.4khz */
+// ADE7912.prototype.ADC_FREQ_2KHZ              =0x20;    /* These bits select the ADC output frequency.2khz */
+// ADE7912.prototype.ADC_FREQ_1KHZ              =0x30;    /* These bits select the ADC output frequency.1khz */
+// ADE7912.prototype.SWRST                      =0x40;    /* When this bit is set to 1, a software reset is initiated. This bit clears itself to 0 after */
+// ADE7912.prototype.BW                         =0x80;    /* Selects the bandwidth of the digital low-pass filter of the ADC. When BW = 0, the */
 
 // STATUS0
-ADE7912.prototype.RESET_ON                   =0x00;
-ADE7912.prototype.CRC_STAT                   =0x01;
-ADE7912.prototype.IC_PROT                    =0x02;
+//ADE7912.prototype.RESET_ON                   =0x00;
+//ADE7912.prototype.CRC_STAT                   =0x01;
+//ADE7912.prototype.IC_PROT                    =0x02;
 
 /* lock register constants(address 0xA */
 ADE7912.prototype.LOCKED                     =0xCA;   /*locks configuration register writing */
 ADE7912.prototype.UNLOCKED                   =0x9C;    /*unlocks configuration register writing */
 
 //SYNC_SNAP (adress 0xB)
-ADE7912.prototype.SYNC = 0x01;
-ADE7912.prototype.SNAP = 0x02;
+//ADE7912.prototype.SYNC = 0x01;
+//ADE7912.prototype.SNAP = 0x02;
 
 // EMI_CTRL
-ADE7912.prototype.SLOT0 =0x01;
-ADE7912.prototype.SLOT1 =0x02;
-ADE7912.prototype.SLOT2 =0x04;
-ADE7912.prototype.SLOT3 =0x08;
-ADE7912.prototype.SLOT4 =0x10;
-ADE7912.prototype.SLOT5 =0x20;
-ADE7912.prototype.SLOT6 =0x40;
-ADE7912.prototype.SLOT6 =0x80;
+
+// ADE7912.prototype.SLOT0 =0x01;
+// ADE7912.prototype.SLOT1 =0x02;
+// ADE7912.prototype.SLOT2 =0x04;
+// ADE7912.prototype.SLOT3 =0x08;
+// ADE7912.prototype.SLOT4 =0x10;
+// ADE7912.prototype.SLOT5 =0x20;
+// ADE7912.prototype.SLOT6 =0x40;
+// ADE7912.prototype.SLOT6 =0x80;
 //////////////////////////////////////////////////////
 
 // Settings for writing updates to serial, and ADE7913 syncing:
@@ -105,25 +111,55 @@ ADE7912.prototype.rdDelayMicros  = 0;
 ADE7912.prototype.nMaxWriteTry = 100;
 ADE7912.prototype.currentMillis = getTime();
 
-let microsForBurstRead;
-let microsBetweenReads;
-let microsPreviousRead;
+ADE7912.prototope.microsForBurstRead;
+ADE7912.prototope.microsBetweenReads;
+ADE7912.prototope.microsPreviousRead;
 
 // Local copies of ADC readings, updated on dataReady interrupt
-let nReads = 0;
-let IWV;
-let V1WV;
-let V2WV;
-let ADC_CRC=new Array (2);// ADC_CRC[2];
-let STATUS0= new Array (1); //STATUS0[1];
-let CNT_SNAPSHOT= new Array (2); //CNT_SNAPSHOT[2];
-let ADC_CRC_burst=new Array (2); //ADC_CRC_burst[2];
-let CONFIG=new Array (1); //CONFIG[1];
-let TEMPOS=new Array (1); //TEMPOS[1];
-let EMI_CTRL=new Array (1); //EMI_CTRL[1];
+ADE7912.prototope.nReads = 0;
+ADE7912.prototope.IWV;
+ADE7912.prototope.V1WV;
+ADE7912.prototope.V2WV;
+ADE7912.prototope.ADC_CRC=new Array (2);// ADC_CRC[2];
+ADE7912.prototope.STATUS0= new Array (1); //STATUS0[1];
+ADE7912.prototope.CNT_SNAPSHOT= new Array (2); //CNT_SNAPSHOT[2];
+ADE7912.prototope.ADC_CRC_burst=new Array (2); //ADC_CRC_burst[2];
+ADE7912.prototope.CONFIG=new Array (1); //CONFIG[1];
+ADE7912.prototope.TEMPOS=new Array (1); //TEMPOS[1];
+ADE7912.prototope.EMI_CTRL=new Array (1); //EMI_CTRL[1];
 
 
+// init chips
 
+ADE7912.prototype.init_chip = function (){
+    clearWatch();//ID??
+    digitalWrite(this.CSpin,1);
+    //SPI?
+
+    // Read STATUS0 register, until Bit 0 (RESET_ON) is cleared:
+     STATUS0[0] = 0b11111111;
+    let nTry = 0;
+    do {
+        this.readMultBytes(this.STATUS0_READ, this.STATUS0); //????
+        nTry++;
+    }
+    while (this.bitRead(this.STATUS0_READ, STATUS0[0],0) && nTry<this.nMaxWriteTry);
+// Check if bit succusfully cleared
+    if (this.bitRead(STATUS0[0], 0)) {
+        console.log("ERROR: RESET_ON bit NOT cleared, nTry: ");
+        console.log(nTry);
+        console.log("STATUS0[0]: ");
+        console.log(STATUS0[0].toString(2));
+        while (true) {}  // LOOP forever  on failure
+    } else {
+        console.log("RESET_ON bit cleared, nTry: ");
+        console.log(nTry);
+        console.log("STATUS0[0]: ");
+        console.log(STATUS0[0].toString(2));
+    }
+
+    this.UNLOCK_REG()
+}
 
 // METHODS:
 ADE7912.prototype.bitRead = function (number, index) {
@@ -132,29 +168,7 @@ ADE7912.prototype.bitRead = function (number, index) {
 }
 
 
-// Read STATUS0 register, until Bit 0 (RESET_ON) is cleared:
- STATUS0[0] = 0b11111111;
-let nTry = 0;
-do {
-    this.readMultBytes(this.STATUS0, STATUS0[0]); //????
-    nTry++;
-    }
-while (this.bitRead(this.STATUS0, STATUS0[0],0) && nTry<this.nMaxWriteTry);
-// Check if bit succusfully cleared
-if (this.bitRead(STATUS0[0], 0)) {
-    console.log("ERROR: RESET_ON bit NOT cleared, nTry: ");
-    console.log(nTry);
-    console.log("STATUS0[0]: ");
-    console.log(STATUS0[0].toString(2));
-    while (true) {}  // LOOP forever  on failure
-} else {
-    console.log("RESET_ON bit cleared, nTry: ");
-    console.log(nTry);
-    console.log("STATUS0[0]: ");
-    console.log(STATUS0[0].toString(2));
-}
 
-this.UNLOCK_REG()
 // Initialize CONFIG register with bit 0 (CLKOUT_EN) cleared (to 0)
 // as CLKOUT unecessary (we provide it from ardiuno)
 // also SET TEMP_EN (bit 3) so temperature can be measured (we're not using V2P)
@@ -172,14 +186,14 @@ if (writeSuccess) {
 }
 
 // // Read temperature offset register:
-// this.readMultBytes(TEMPOS, TEMPOS, 1);
-// console.log("TEMPOS: ");
-// console.log( TEMPOS[0]);
+ this.readMultBytes(TEMPOS, TEMPOS, 1);
+console.log("TEMPOS: ");
+console.log( TEMPOS[0]);
 
 // Set the EMI_CTRL register; and check written correctly:
-let writeSuccess = this.writeADE7913_check(EMI_CTRL_WRITE, 0b01010101, EMI_CTRL_READ);
+let writeSuccess = this.writeADE7913_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
 
-this.readMultBytesADE7913(EMI_CTRL_READ, EMI_CTRL, 1);
+this.readMultBytes(this.EMI_CTRL_READ, this.EMI_CTRL, 1);
 if (writeSuccess) {
     console.log("EMI_CTRL write success!");
     console.log("EMI_CTRL[0]: ");
@@ -263,7 +277,7 @@ console.log("SYNC_SNAP Register Set!");
 
 //Unlock Config reg
 ADE7912.prototype.UNLOCK_REG = function () {
-    this.writeADE7912 (this.LOCK, this.UNLOCKED);
+    this.writeADE7912 (this.LOCKED, this.UNLOCKED);
     console.log('Registers unlocked!')
 }
 
