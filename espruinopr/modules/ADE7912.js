@@ -88,21 +88,6 @@ ADE7912.prototype.UNLOCKED                   =0x9C;    /*unlocks configuration r
 //ADE7912.prototype.SYNC = 0x01;
 //ADE7912.prototype.SNAP = 0x02;
 
-// EMI_CTRL
-
-// ADE7912.prototype.SLOT0 =0x01;
-// ADE7912.prototype.SLOT1 =0x02;
-// ADE7912.prototype.SLOT2 =0x04;
-// ADE7912.prototype.SLOT3 =0x08;
-// ADE7912.prototype.SLOT4 =0x10;
-// ADE7912.prototype.SLOT5 =0x20;
-// ADE7912.prototype.SLOT6 =0x40;
-// ADE7912.prototype.SLOT6 =0x80;
-//////////////////////////////////////////////////////
-
-// Settings for writing updates to serial, and ADE7913 syncing:
-// define as volatile all variables to be updated from iterrupt service routine
-
 ADE7912.prototype.writePeriodMillis = 2000;
 ADE7912.prototype.syncPeriodMillis = 10000;
 ADE7912.prototype.previousWriteMillis = 0;
@@ -120,17 +105,16 @@ ADE7912.prototope.nReads = 0;
 ADE7912.prototope.IWV;
 ADE7912.prototope.V1WV;
 ADE7912.prototope.V2WV;
-ADE7912.prototope.ADC_CRC=new Array (2);// ADC_CRC[2];
-ADE7912.prototope.STATUS0= new Array (1); //STATUS0[1];
+ADE7912.prototope.ADC_CRC = new Array (2);// ADC_CRC[2];
+ADE7912.prototope.STATUS0 = new Array (1); //STATUS0[1];
 ADE7912.prototope.CNT_SNAPSHOT= new Array (2); //CNT_SNAPSHOT[2];
-ADE7912.prototope.ADC_CRC_burst=new Array (2); //ADC_CRC_burst[2];
-ADE7912.prototope.CONFIG=new Array (1); //CONFIG[1];
-ADE7912.prototope.TEMPOS=new Array (1); //TEMPOS[1];
-ADE7912.prototope.EMI_CTRL=new Array (1); //EMI_CTRL[1];
+ADE7912.prototope.ADC_CRC_burst = new Array (2); //ADC_CRC_burst[2];
+ADE7912.prototope.CONFIG = new Array (1); //CONFIG[1];
+ADE7912.prototope.TEMPOS = new Array (1); //TEMPOS[1];
+ADE7912.prototope.EMI_CTRL = new Array (1); //EMI_CTRL[1];
 
 
-// init chips
-
+//////////////////////////////////////////// init chips///////////////////////////
 ADE7912.prototype.init_chip = function (){
     clearWatch();//ID??
     digitalWrite(this.CSpin,1);
@@ -159,53 +143,80 @@ ADE7912.prototype.init_chip = function (){
     }
 
     this.UNLOCK_REG()
+
+    let writeSuccess = this.writeADE7912_check(this.CONFIG_WRITE, 0b00001000, this.CONFIG_READ);
+// delay!!!
+    this.readMultBytes(this.CONFIG_READ, this.CONFIG, 1);
+    if (writeSuccess) {
+        console.log("CONFIG write success!");
+        console.log("CONFIG[0]: ");
+        console.log(this.CONFIG[0].toString(2));
+    } else {
+        console.log("ERROR: CONFIG Write Failed");
+        console.log("CONFIG[0]: ");
+        console.log(this.CONFIG[0].toString(2));
+        while (true) {}  // LOOP forever  on failure
+    }
+
+// // Read temperature offset register:
+    this.readMultBytes(this.TEMPOS_READ, this.TEMPOS, 1);
+    console.log("TEMPOS: ");
+    console.log(this.TEMPOS[0]);
+
+// Set the EMI_CTRL register; and check written correctly:
+    let writeSuccess = this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
+
+    this.readMultBytes(this.EMI_CTRL_READ, this.EMI_CTRL, 1);
+    if (writeSuccess) {
+        console.log("EMI_CTRL write success!");
+        console.log("EMI_CTRL[0]: ");
+        console.log(this.EMI_CTRL[0].toString(2));
+    } else {
+        console.log("ERROR: EMI_CTRL Write Failed");
+        console.log("EMI_CTRL[0]: ");
+        console.log(this.EMI_CTRL[0].toString(2));
+        while (true) {}  // LOOP forever  on failure
+    }
+
+    this.writeADE7912(this.SYNC_SNAP_WRITE, 0b00000001);
+    console.log("SYNC_SNAP Register Set!");
+
+    this.writeADE7912(this.LOCK_KEY_WRITE, this.LOCKED);
+
+    console.log("Registers locked!");
+    console.log(" --- SETUP COMPLETE ---");
 }
 
-// METHODS:
+////////////////////////////// METHODS///////////////////////////////////
 ADE7912.prototype.bitRead = function (number, index) {
     let binary = number.toString(2);
     return (binary[(binary.length - 1) - index] == "1"); // index backwards
 }
 
-
-
-// Initialize CONFIG register with bit 0 (CLKOUT_EN) cleared (to 0)
-// as CLKOUT unecessary (we provide it from ardiuno)
-// also SET TEMP_EN (bit 3) so temperature can be measured (we're not using V2P)
-// SET ADC_FREQ (bit 5:4) to 11 (1kHz for debugging), otherwise 00 (8kHx) for running
-
-let writeSuccess = this.writeADE7912_check(this.CONFIG, 0b00001000, this.CONFIG); ///??????
-if (writeSuccess) {
-    console.log("CONFIG write success!");
-    console.log("CONFIG[0]: "); Serial.println(CONFIG[0].toString(2));
-} else {
-    console.log("ERROR: CONFIG Write Failed");
-    console.log("CONFIG[0]: ");
-    console.log(CONFIG[0].toString(2));
-    while (true) {}  // LOOP forever  on failure
+//Unlock Config reg
+ADE7912.prototype.UNLOCK_REG = function () {
+    this.writeADE7912 (this.LOCKED, this.UNLOCKED);
+    console.log('Registers unlocked!')
 }
 
-// // Read temperature offset register:
- this.readMultBytes(TEMPOS, TEMPOS, 1);
-console.log("TEMPOS: ");
-console.log( TEMPOS[0]);
+ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
+    let success = false;
+    let nTry = 0;
+    //let nMaxWriteTry;
+    do {
+        digitalWrite(this.CSpin, 0)
+        this.SPI.send(writeTo);
+        this.SPI.send(writeTo);
+        digitalWrite(this.CSpin, 1);
 
-// Set the EMI_CTRL register; and check written correctly:
-let writeSuccess = this.writeADE7913_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
-
-this.readMultBytes(this.EMI_CTRL_READ, this.EMI_CTRL, 1);
-if (writeSuccess) {
-    console.log("EMI_CTRL write success!");
-    console.log("EMI_CTRL[0]: ");
-    console.log(EMI_CTRL[0].toString(2));
-} else {
-    console.log("ERROR: EMI_CTRL Write Failed");
-    console.log("EMI_CTRL[0]: ");
-    console.log(EMI_CTRL[0].toString(2));
-    while (true) {}  // LOOP forever  on failure
+        let readBack = new Array (1) //
+        this.readMultBytes(readFrom, readBack, 1);
+        success = (readBack[0] == writeMsg);
+        nTry++;
+    }  while ((!success) && nTry < this.nMaxWriteTry);
+    return success;
 }
-
-// LOOP
+///////////////////////////////////////// LOOP/////////////////////////////////////
  //let currentMillis = getTime();
 //let previousWriteMillis;
 if ((this.currentMillis - this.previousWriteMillis) > this.writePeriodMillis) {
@@ -232,54 +243,33 @@ if ((this.currentMillis - previousSyncMillis) > this.syncPeriodMillis) {
 
 }
 
-ADE7912.prototype.writeToSerial = function () {
-
-}
+// ADE7912.prototype.writeToSerial = function () {
+//
+// }
 
 
 // Write a register to ADE7913, assume SPI.beginTransaction already called
 // include read-back test, and loop until correctly set (or nMaxWriteTry reached)!
-ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
 
-    let success = false;
-    let nTry = 0;
-    //let nMaxWriteTry;
-    do {
-        digitalWrite(this.CSpin, 0)
-        this.SPI.send(writeTo);
-        this.SPI.send(writeTo);
-        digitalWrite(this.CSpin, 1);
-
-        let readBack = new Array (1) // readBack[1]  ????????????????????
-        this.readMultBytes(readFrom, readBack, 1);
-        success = (readBack[0] == writeMsg);
-        nTry++;
-    }  while ((!success) && nTry < this.nMaxWriteTry);
-    return success;
-}
 
 // Set the EMI_CTRL register; and check written correctly:
-let writeSuccess = this.writeADE7912_check(EMI_CTRL, 0b01010101, EMI_CTRL);
+let writeSuccess = this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
 
-this.readMultBytes(EMI_CTRL, EMI_CTRL, 1)
+this.readMultBytes(EMI_CTRL, EMI, 1)
 if (writeSuccess){
     Console.log("EMI_CTRL write success!");
 } else {
     console.log("ERROR: EMI_CTRL Write Failed");
-    while (true) {}///???
+    while (true) {}
 }
 
 
 // Execute a SYNC_SNAP = 0x01 write broadcast, NB will be cleared to 0x00 after 1 CLK cycle
-writeADE7912(this.SYNC_SNAP, 0b00000001)
+this.writeADE7912(this.SYNC_SNAP, 0b00000001)
 console.log("SYNC_SNAP Register Set!");
 
 
-//Unlock Config reg
-ADE7912.prototype.UNLOCK_REG = function () {
-    this.writeADE7912 (this.LOCKED, this.UNLOCKED);
-    console.log('Registers unlocked!')
-}
+
 
 ADE7912.prototype.LOCK_REG = function () {
     this.writeADE7912 (this.LOCK, this.LOCKED);
@@ -294,14 +284,10 @@ ADE7912.prototype.writeADE7912 = function (writeREG, writeDATA) {
 }
 
 
-// ADE7912.prototype.REAR_V1 = function() {
-//   var addr = this.V1WV;
-// };
-
 //Sync multyple chips ADE7912
 ADE7912.prototype.syncADE7912  = function () {
   this.UNLOCK_REG();
-  this.writeADE7912 (this.SYNC_SNAP, 0b00000001);//???
+  this.writeADE7912 (this.SYNC_SNAP_WRITE, 0b00000001);//???
   this.LOCK_REG();
 }
 
@@ -345,7 +331,7 @@ ADE7912.prototype.dataReady_ISR = function () {
 
 }
 
-///EXPORTS
+//////////////////////////EXPORTS//////////////////////////////////////////////
 exports.device = function(c) {
     c = c || {};
     let ad = new ADE7912(c);
