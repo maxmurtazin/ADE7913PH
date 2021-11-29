@@ -268,11 +268,14 @@ ADE7912.prototype.dataReady_ISR = function () {
  //let currentMillis = getTime();
 //let previousWriteMillis;
 //setTimeout(this.loop, 1000);
+// ADE7912.prototype.loop_setup = {
+//
+//
+// }
 
 while (true) {
     this.loop ()
 }
-
 ADE7912.prototype.loop = function () {
     if ((this.currentMillis - this.previousWriteMillis) > this.writePeriodMillis) {
         // dettach interrupt so write won't be messed up
@@ -299,7 +302,6 @@ ADE7912.prototype.loop = function () {
 }
 
 
-
 //////////////////////////EXPORTS//////////////////////////////////////////////
 exports.device = function(c) {
     c = c || {};
@@ -317,12 +319,31 @@ exports.channel = function(c) {
 
 
 /////////////////////////SHOW/////////////////
+this.init_chip();
+//this.loop_setup();
+
+
 ADE7912.prototype.SHOW = function() {
-    this.init_chip();
+
 
     console.log(this.IWV);
     console.log(this.V1WV);
     console.log(this.V2WV);
+
+    console.log("CONFIG= ");
+    console.log(this.CONFIG[0].toString(2));
+
+    console.log("ADC_CRC= ");
+    console.log(this.ADC_CRC[1].toString(2));
+
+    console.log(this.ADC_CRC[0].toString(2));
+    console.log("STATUS0= ");
+    console.log(this.STATUS0[0].toString(2));
+    console.log("CNT_SNAPSHOT= ");
+    console.log(this.CNT_SNAPSHOT[1].toString(2));
+    console.log(this.CNT_SNAPSHOT[0].toString(2));
+
+
 }
 setTimeout(this.SHOW, 1000);
 
