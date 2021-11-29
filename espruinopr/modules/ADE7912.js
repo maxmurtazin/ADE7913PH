@@ -106,9 +106,7 @@ ADE7912.prototype.nMaxWriteTry = 100;
 ADE7912.prototype.currentMillis = (getTime()*1000);
 ADE7912.prototype.micros = (getTime()*1000000);
 
-//ADE7912.prototope.microsForBurstRead;
-//ADE7912.prototope.microsBetweenReads;
-//ADE7912.prototope.microsPreviousRead;
+
 
 // Local copies of ADC readings, updated on dataReady interrupt
 
@@ -251,7 +249,11 @@ ADE7912.prototype.readMultBytes = function (readFrom, readTo, nBytes) { //???
 ///////////////////////////////////////// LOOP/////////////////////////////////////
  //let currentMillis = getTime();
 //let previousWriteMillis;
-setTimeout(this.loop, 1000);
+//setTimeout(this.loop, 1000);
+
+while (true) {
+    this.loop ()
+}
 
 ADE7912.prototype.loop = function () {
     if ((this.currentMillis - this.previousWriteMillis) > this.writePeriodMillis) {
@@ -280,10 +282,10 @@ ADE7912.prototype.loop = function () {
 
 
 // Set the EMI_CTRL register; and check written correctly:
-let writeSuccess = this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
+let writeSuccess3 = this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
 
 this.readMultBytes(EMI_CTRL, EMI, 1)
-if (writeSuccess){
+if (writeSuccess3){
     Console.log("EMI_CTRL write success!");
 } else {
     console.log("ERROR: EMI_CTRL Write Failed");
@@ -326,16 +328,14 @@ ADE7912.prototype.dataReady_ISR = function () {
 
     digitalWrite(this.CSpin, 1);
     this.microsForBurstRead = this.micros - this.microsPreviousRead;
-
 }
-
-
-
-
-
-
-
-
+/////////////////////////SHOW/////////////////
+ADE7912.prototype.SHOW = function() {
+    console.log(this.IWV);
+    console.log(this.V1WV);
+    console.log(this.V2WV);
+}
+setTimeout(this.SHOW, 1000);
 
 
 
