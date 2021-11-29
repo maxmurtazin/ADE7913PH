@@ -107,17 +107,12 @@ ADE7912.prototype.currentMillis = (getTime()*1000);
 ADE7912.prototype.micros = (getTime()*1000000);
 
 
-
-// Local copies of ADC readings, updated on dataReady interrupt
-
-
-
 //////////////////////////////////////////// init chips///////////////////////////
 ADE7912.prototype.init_chip = function (){
     clearWatch();//ID??
     digitalWrite(this.CSpin,1);
     //SPI?
-    this.init();
+    this.init();//SPI
 
     // Read STATUS0 register, until Bit 0 (RESET_ON) is cleared:
      STATUS0[0] = 0b11111111;
@@ -187,7 +182,8 @@ ADE7912.prototype.init_chip = function (){
     console.log(" --- SETUP COMPLETE ---");
 }
 
-////////////////////////////// METHODS///////////////////////////////////
+////////////////////////////// METHODS//////////////////////////////////
+//bit read
 ADE7912.prototype.bitRead = function (number, index) {
     let binary = number.toString(2);
     return (binary[(binary.length - 1) - index] == "1"); // index backwards
@@ -203,6 +199,7 @@ ADE7912.prototype.LOCK_REG = function () {
     this.writeADE7912 (this.LOCK_KEY_WRITE, this.LOCKED);
     console.log('Registers locked!')
 }
+
 //Check
 ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
     let success = false;
@@ -242,9 +239,30 @@ ADE7912.prototype.readMultBytes = function (readFrom, readTo, nBytes) { //???
     while (idx>= 0) {
         let readTo = new Array(idx);
         readTo=this.SPI.write(0x00);
-        idx--;
+        idx --;
     }
     digitalWrite(this.CSpin,1);
+}
+
+//ISR and burst read
+ADE7912.prototype.dataReady_ISR = function () {
+    //let microsBetweenReads;
+    this.microsBetweenReads = this.micros - this.microsPreviousRead;
+    this.microsPreviousRead = this.micros;
+    this.nReads++;       // keep a track of No. of reads
+
+    digitalWrite(this.CSpin, 0);
+    this.SPI.send(this.IWV_READ);
+    this.IWV = this.SPI.send(this.DUMMY_MSG);
+    this.V1WV =  this.SPI.send(this.DUMMY_MSG);
+    this.V1WV =  this.SPI.send(this.DUMMY_MSG);
+
+    this.ADC_CRC[0] = this.SPI.send(this.DUMMY_MSG);
+    this.ADC_CRC[1] = this.SPI.send(this.DUMMY_MSG);
+    this.STATUS0[0] = this.SPI.send(this.DUMMY_MSG);
+
+    digitalWrite(this.CSpin, 1);
+    this.microsForBurstRead = this.micros - this.microsPreviousRead;
 }
 ///////////////////////////////////////// LOOP/////////////////////////////////////
  //let currentMillis = getTime();
@@ -281,63 +299,6 @@ ADE7912.prototype.loop = function () {
 }
 
 
-// Set the EMI_CTRL register; and check written correctly:
-let writeSuccess3 = this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
-
-this.readMultBytes(EMI_CTRL, EMI, 1)
-if (writeSuccess3){
-    Console.log("EMI_CTRL write success!");
-} else {
-    console.log("ERROR: EMI_CTRL Write Failed");
-    while (true) {}
-}
-
-
-// Execute a SYNC_SNAP = 0x01 write broadcast, NB will be cleared to 0x00 after 1 CLK cycle
-this.writeADE7912(this.SYNC_SNAP, 0b00000001)
-console.log("SYNC_SNAP Register Set!");
-
-
-
-
-
-
-
-
-//Sync multyple chips ADE7912
-
-// Read multiple bytes from ADE7913, assume SPI.beginTransaction already called
-// COMMENTED OUT: (try multiple times till a non-all-ones answer found)
-
-// READ VALUES IN BURST MODE:
-ADE7912.prototype.dataReady_ISR = function () {
-    //let microsBetweenReads;
-    this.microsBetweenReads = this.micros - this.microsPreviousRead;
-    this.microsPreviousRead = this.micros;
-    nReads++;       // keep a track of No. of reads
-
-    digitalWrite(this.CSpin, 0);
-    this.SPI.send(this.IWV_READ);
-    this.IWV = this.SPI.send(this.DUMMY_MSG);
-    this.V1WV =  this.SPI.send(this.DUMMY_MSG);
-    this.V1WV =  this.SPI.send(this.DUMMY_MSG);
-
-    this.ADC_CRC[0] = this.SPI.send(this.DUMMY_MSG);
-    this.ADC_CRC[1] = this.SPI.send(this.DUMMY_MSG);
-    this.STATUS0[0] = this.SPI.send(this.DUMMY_MSG);
-
-    digitalWrite(this.CSpin, 1);
-    this.microsForBurstRead = this.micros - this.microsPreviousRead;
-}
-/////////////////////////SHOW/////////////////
-ADE7912.prototype.SHOW = function() {
-    console.log(this.IWV);
-    console.log(this.V1WV);
-    console.log(this.V2WV);
-}
-setTimeout(this.SHOW, 1000);
-
-
 
 //////////////////////////EXPORTS//////////////////////////////////////////////
 exports.device = function(c) {
@@ -353,3 +314,17 @@ exports.channel = function(c) {
 
     return ch;
 };
+
+
+/////////////////////////SHOW/////////////////
+ADE7912.prototype.SHOW = function() {
+    this.init_chip();
+
+    console.log(this.IWV);
+    console.log(this.V1WV);
+    console.log(this.V2WV);
+}
+setTimeout(this.SHOW, 1000);
+
+
+
