@@ -103,7 +103,8 @@ ADE7912.prototype.previousWriteMillis = 0;
 ADE7912.prototype.previousSyncMillis = 0;
 ADE7912.prototype.rdDelayMicros  = 0;
 ADE7912.prototype.nMaxWriteTry = 100;
-ADE7912.prototype.currentMillis = getTime();
+ADE7912.prototype.currentMillis = (getTime()*1000);
+ADE7912.prototype.micros = (getTime()*1000000);
 
 //ADE7912.prototope.microsForBurstRead;
 //ADE7912.prototope.microsBetweenReads;
@@ -118,6 +119,7 @@ ADE7912.prototype.init_chip = function (){
     clearWatch();//ID??
     digitalWrite(this.CSpin,1);
     //SPI?
+    this.init();
 
     // Read STATUS0 register, until Bit 0 (RESET_ON) is cleared:
      STATUS0[0] = 0b11111111;
@@ -142,7 +144,8 @@ ADE7912.prototype.init_chip = function (){
     }
 
     this.UNLOCK_REG()
-
+    console.log("Registers unlocked!");
+    // Initialize CONFIG register with bit 0
     let writeSuccess1;
     writeSuccess1 = this.writeADE7912_check(this.CONFIG_WRITE, 0b00001000, this.CONFIG_READ);
 // delay!!!
@@ -181,8 +184,7 @@ ADE7912.prototype.init_chip = function (){
     this.writeADE7912(this.SYNC_SNAP_WRITE, 0b00000001);
     console.log("SYNC_SNAP Register Set!");
 
-    this.writeADE7912(this.LOCK_KEY_WRITE, this.LOCKED);
-
+    this.LOCK_REG();
     console.log("Registers locked!");
     console.log(" --- SETUP COMPLETE ---");
 }
@@ -195,18 +197,23 @@ ADE7912.prototype.bitRead = function (number, index) {
 
 //Unlock Config reg
 ADE7912.prototype.UNLOCK_REG = function () {
-    this.writeADE7912 (this.LOCKED, this.UNLOCKED);
+    this.writeADE7912 (this.LOCK_KEY_WRITE, this.UNLOCKED);
     console.log('Registers unlocked!')
 }
-
+// Lock config reg
+ADE7912.prototype.LOCK_REG = function () {
+    this.writeADE7912 (this.LOCK_KEY_WRITE, this.LOCKED);
+    console.log('Registers locked!')
+}
+//Check
 ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
     let success = false;
     let nTry = 0;
     //let nMaxWriteTry;
     do {
         digitalWrite(this.CSpin, 0)
-        this.SPI.send(writeTo);
-        this.SPI.send(writeTo);
+        this.SPI.send(writeTo, writeMsg);
+
         digitalWrite(this.CSpin, 1);
 
         let readBack = new Array (1) //
@@ -216,40 +223,60 @@ ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
     }  while ((!success) && nTry < this.nMaxWriteTry);
     return success;
 }
+//write ADE7912
+ADE7912.prototype.writeADE7912 = function (writeREG, writeDATA) {
+    digitalWrite(this.CSpin,0);
+    this.SPI.write(writeREG, writeDATA);
+    digitalWrite(this.CSpin,1);
+}
+// Sync
+ADE7912.prototype.syncADE7912  = function () {
+    this.UNLOCK_REG();
+    this.writeADE7912 (this.SYNC_SNAP_WRITE, 0b00000001);//???
+    this.LOCK_REG();
+}
+//read mult bytes
+ADE7912.prototype.readMultBytes = function (readFrom, readTo, nBytes) { //???
+    let idx = nBytes - 1;
+    digitalWrite(this.CSpin, 0);
+    //let readFrom;
+    this.SPI.write (readFrom);
+    while (idx>= 0) {
+        let readTo = new Array(idx);
+        readTo=this.SPI.write(0x00);
+        idx--;
+    }
+    digitalWrite(this.CSpin,1);
+}
 ///////////////////////////////////////// LOOP/////////////////////////////////////
  //let currentMillis = getTime();
 //let previousWriteMillis;
-if ((this.currentMillis - this.previousWriteMillis) > this.writePeriodMillis) {
-    // dettach interrupt so write won't be messed up
-    clearWatch();//ID??
+setTimeout(this.loop, 1000);
 
-    this.previousWriteMillis = this.currentMillis;//?
-    //this.writeToSerial(); //function
-    // re-attach interrupt
-    setWatch(this.dataReady_ISR(), this.DRpin, { repeat: true, edge: "falling" }); // LOW
-}
+ADE7912.prototype.loop = function () {
+    if ((this.currentMillis - this.previousWriteMillis) > this.writePeriodMillis) {
+        // dettach interrupt so write won't be messed up
+        clearWatch();//ID??
 
+        this.previousWriteMillis = this.currentMillis;//?
+        //this.writeToSerial(); //function
+        // re-attach interrupt
+        setWatch(this.dataReady_ISR(), this.DRpin, {repeat: true, edge: "falling"}); // LOW
+    }
 //let syncPeriodMillis;
-if ((this.currentMillis - previousSyncMillis) > this.syncPeriodMillis) {
-    // dettach interrupt so sync won't be messed up
-    clearWatch();//ID??
+    if ((this.currentMillis - this.previousSyncMillis) > this.syncPeriodMillis) {
+        // dettach interrupt so sync won't be messed up
+        clearWatch();//ID??
 
-    this.previousSyncMillis = this.currentMillis;
-    this.syncADE7912();
-    console.log("ADE7912 Synced");
-    // re-attach interrupt
-    //attachInterrupt(digitalPinToInterrupt(dataReadyPin), dataReady_ISR, FALLING);// LOW
-    setWatch(this.dataReady_ISR(), this.DRpin, { repeat: true, edge: "falling" }); //true??
+        this.previousSyncMillis = this.currentMillis;
+        this.syncADE7912();
+        console.log("ADE7912 Synced");
+        // re-attach interrupt
+        //attachInterrupt(digitalPinToInterrupt(dataReadyPin), dataReady_ISR, FALLING);// LOW
+        setWatch(this.dataReady_ISR(), this.DRpin, {repeat: true, edge: "falling"}); //true??
 
+    }
 }
-
-// ADE7912.prototype.writeToSerial = function () {
-//
-// }
-
-
-// Write a register to ADE7913, assume SPI.beginTransaction already called
-// include read-back test, and loop until correctly set (or nMaxWriteTry reached)!
 
 
 // Set the EMI_CTRL register; and check written correctly:
@@ -271,65 +298,46 @@ console.log("SYNC_SNAP Register Set!");
 
 
 
-ADE7912.prototype.LOCK_REG = function () {
-    this.writeADE7912 (this.LOCK, this.LOCKED);
-    console.log('Registers locked!')
-}
 
 
-ADE7912.prototype.writeADE7912 = function (writeREG, writeDATA) {
-    digitalWrite(this.CSpin,0);
-    this.SPI.write(writeREG, writeDATA);
-    digitalWrite(this.CSpin,1);
-}
 
 
 //Sync multyple chips ADE7912
-ADE7912.prototype.syncADE7912  = function () {
-  this.UNLOCK_REG();
-  this.writeADE7912 (this.SYNC_SNAP_WRITE, 0b00000001);//???
-  this.LOCK_REG();
-}
 
 // Read multiple bytes from ADE7913, assume SPI.beginTransaction already called
 // COMMENTED OUT: (try multiple times till a non-all-ones answer found)
-ADE7912.prototype.readMultBytes = function (readFrom, readTo, nBytes) { //???
-    let idx = nBytes - 1;
-    digitalWrite(this.CSpin, 0);
-    //let readFrom;
-    this.SPI.write (readFrom);
-    while (idx>= 0) {
-        let readTo = new Array(idx);
-        readTo=this.SPI.write(0x00);
-        idx--;
-    }
-    digitalWrite(this.CSpin,1);
-}
+
 // READ VALUES IN BURST MODE:
 ADE7912.prototype.dataReady_ISR = function () {
     //let microsBetweenReads;
-    microsBetweenReads = micros() - microsPreviousRead;
-    microsPreviousRead = micros();
+    this.microsBetweenReads = this.micros - this.microsPreviousRead;
+    this.microsPreviousRead = this.micros;
     nReads++;       // keep a track of No. of reads
 
     digitalWrite(this.CSpin, 0);
-    this.SPI.write(this.WRITE);//?
+    this.SPI.send(this.IWV_READ);
+    this.IWV = this.SPI.send(this.DUMMY_MSG);
+    this.V1WV =  this.SPI.send(this.DUMMY_MSG);
+    this.V1WV =  this.SPI.send(this.DUMMY_MSG);
 
-    this.uint24[0] = this.SPI.send(0x00);
-    this.uint24[1] = this.SPI.send(0x00);
-    this.uint24[2] = this.SPI.send(0x00);
-
-    this.uint16 [0] = this.SPI.send(0x00);
-    this.uint16 [1] = this.SPI.send(0x00);
-
-    this.uint8 [2] = this.SPI.send(0x00);
-
+    this.ADC_CRC[0] = this.SPI.send(this.DUMMY_MSG);
+    this.ADC_CRC[1] = this.SPI.send(this.DUMMY_MSG);
+    this.STATUS0[0] = this.SPI.send(this.DUMMY_MSG);
 
     digitalWrite(this.CSpin, 1);
-    microsForBurstRead = micros() - microsPreviousRead;
-    //return;??
+    this.microsForBurstRead = this.micros - this.microsPreviousRead;
 
 }
+
+
+
+
+
+
+
+
+
+
 
 //////////////////////////EXPORTS//////////////////////////////////////////////
 exports.device = function(c) {
