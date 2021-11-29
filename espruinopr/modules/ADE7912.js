@@ -14,9 +14,18 @@ let ADE7912 = function (c) {
     this.misoPin = misoPin || A6; //P2
     this.sckPin = sckPin || A5; //A5
 
-    this.uint8 = new Uint8Array(2); //??
-    this.uint16 = new Uint16Array(2);
-    this.uint24 = new Uint24Array(2); //espruino function
+    this.nReads = 0;
+    this.IWV = new Uint24Array (1); // ?????
+    this.V1WV = new Uint24Array (1);
+    this.V2WV = new Uint24Array (1);
+    this.ADC_CRC = new Array (2);// ADC_CRC[2];
+    this.STATUS0 = new Array (1); //STATUS0[1];
+    this.CNT_SNAPSHOT= new Array (2); //CNT_SNAPSHOT[2];
+    this.ADC_CRC_burst = new Array (2); //ADC_CRC_burst[2];
+    this.CONFIG = new Array (1); //CONFIG[1];
+    this.TEMPOS = new Array (1); //TEMPOS[1];
+    this.EMI_CTRL = new Array (1); //EMI_CTRL[1];
+
 };
 
 ADE7912.prototype.init = function() { //hardware SPI
@@ -96,22 +105,12 @@ ADE7912.prototype.rdDelayMicros  = 0;
 ADE7912.prototype.nMaxWriteTry = 100;
 ADE7912.prototype.currentMillis = getTime();
 
-ADE7912.prototope.microsForBurstRead;
-ADE7912.prototope.microsBetweenReads;
-ADE7912.prototope.microsPreviousRead;
+//ADE7912.prototope.microsForBurstRead;
+//ADE7912.prototope.microsBetweenReads;
+//ADE7912.prototope.microsPreviousRead;
 
 // Local copies of ADC readings, updated on dataReady interrupt
-ADE7912.prototope.nReads = 0;
-ADE7912.prototope.IWV;
-ADE7912.prototope.V1WV;
-ADE7912.prototope.V2WV;
-ADE7912.prototope.ADC_CRC = new Array (2);// ADC_CRC[2];
-ADE7912.prototope.STATUS0 = new Array (1); //STATUS0[1];
-ADE7912.prototope.CNT_SNAPSHOT= new Array (2); //CNT_SNAPSHOT[2];
-ADE7912.prototope.ADC_CRC_burst = new Array (2); //ADC_CRC_burst[2];
-ADE7912.prototope.CONFIG = new Array (1); //CONFIG[1];
-ADE7912.prototope.TEMPOS = new Array (1); //TEMPOS[1];
-ADE7912.prototope.EMI_CTRL = new Array (1); //EMI_CTRL[1];
+
 
 
 //////////////////////////////////////////// init chips///////////////////////////
@@ -144,10 +143,11 @@ ADE7912.prototype.init_chip = function (){
 
     this.UNLOCK_REG()
 
-    let writeSuccess = this.writeADE7912_check(this.CONFIG_WRITE, 0b00001000, this.CONFIG_READ);
+    let writeSuccess1;
+    writeSuccess1 = this.writeADE7912_check(this.CONFIG_WRITE, 0b00001000, this.CONFIG_READ);
 // delay!!!
     this.readMultBytes(this.CONFIG_READ, this.CONFIG, 1);
-    if (writeSuccess) {
+    if (writeSuccess1) {
         console.log("CONFIG write success!");
         console.log("CONFIG[0]: ");
         console.log(this.CONFIG[0].toString(2));
@@ -159,15 +159,15 @@ ADE7912.prototype.init_chip = function (){
     }
 
 // // Read temperature offset register:
-    this.readMultBytes(this.TEMPOS_READ, this.TEMPOS, 1);
+    this.readMultBytes(this.TEMPOS_READ, this.TEMPOS, 1);//??
     console.log("TEMPOS: ");
     console.log(this.TEMPOS[0]);
 
 // Set the EMI_CTRL register; and check written correctly:
-    let writeSuccess = this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
+    let writeSuccess2 = this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
 
     this.readMultBytes(this.EMI_CTRL_READ, this.EMI_CTRL, 1);
-    if (writeSuccess) {
+    if (writeSuccess2) {
         console.log("EMI_CTRL write success!");
         console.log("EMI_CTRL[0]: ");
         console.log(this.EMI_CTRL[0].toString(2));
@@ -224,7 +224,7 @@ if ((this.currentMillis - this.previousWriteMillis) > this.writePeriodMillis) {
     clearWatch();//ID??
 
     this.previousWriteMillis = this.currentMillis;//?
-    this.writeToSerial(); //function
+    //this.writeToSerial(); //function
     // re-attach interrupt
     setWatch(this.dataReady_ISR(), this.DRpin, { repeat: true, edge: "falling" }); // LOW
 }
