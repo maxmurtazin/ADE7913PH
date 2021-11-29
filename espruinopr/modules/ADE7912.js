@@ -2,6 +2,15 @@
  library for ADE7912 ADC (Analog devices)  (espruino)
  library for multiple chips
 */
+
+exports.device = function(c) {
+    c = c || {};
+    let ad = new ADE7912(c);
+    //ad.init();
+    //ad.init_chip();
+    return ad;
+};
+
 // iskra js pins
 let ADE7912 = function (c) {
     c = c || {};
@@ -10,9 +19,9 @@ let ADE7912 = function (c) {
     this.CSpin = c.CSpin || B11;// P0
     this.DRpin = c.DRpin || C3; //P4
     this.SPI = c.SPI || SPI1; // Hardware SPI
-    this.mosiPin = mosiPin || A7; //P3
-    this.misoPin = misoPin || A6; //P2
-    this.sckPin = sckPin || A5; //A5
+    this.mosiPin = c.mosiPin || A7; //P3
+    this.misoPin = c.misoPin || A6; //P2
+    this.sckPin = c.sckPin || A5; //A5
 
     this.nReads = 0;
     this.IWV = new Uint24Array (1); // ?????
@@ -303,29 +312,17 @@ ADE7912.prototype.loop = function () {
 
 
 //////////////////////////EXPORTS//////////////////////////////////////////////
-exports.device = function(c) {
-    c = c || {};
-    let ad = new ADE7912(c);
 
-    return ad;
-};
-
-exports.channel = function(c) {
-    c = c || {};
-    let ch = new Channel(c);
-
-    return ch;
-};
 
 
 /////////////////////////SHOW/////////////////
-this.init_chip();
+//this.init_chip();
 //this.loop_setup();
 
 
 ADE7912.prototype.SHOW = function() {
 
-
+    setTimeout(this.SHOW, 1000);
     console.log(this.IWV);
     console.log(this.V1WV);
     console.log(this.V2WV);
@@ -345,7 +342,7 @@ ADE7912.prototype.SHOW = function() {
 
 
 }
-setTimeout(this.SHOW, 1000);
+
 
 
 
