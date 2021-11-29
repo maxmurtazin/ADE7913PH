@@ -3,11 +3,12 @@
  library for multiple chips
 */
 
+//////////////////////////EXPORTS//////////////////////////////////////////////
 exports.device = function(c) {
     c = c || {};
     let ad = new ADE7912(c);
-    //ad.init();
-    //ad.init_chip();
+  //  ad.init();
+    // ad.init_chip();
     return ad;
 };
 
@@ -124,25 +125,26 @@ ADE7912.prototype.init_chip = function (){
     this.init();//SPI
 
     // Read STATUS0 register, until Bit 0 (RESET_ON) is cleared:
-     STATUS0[0] = 0b11111111;
+    //let STATUS0;
+    this.STATUS0[0] = 0b11111111;
     let nTry = 0;
     do {
         this.readMultBytes(this.STATUS0_READ, this.STATUS0); //????
         nTry++;
     }
-    while (this.bitRead(this.STATUS0_READ, STATUS0[0],0) && nTry<this.nMaxWriteTry);
+    while (this.bitRead(this.STATUS0_READ, this.STATUS0[0],0) && nTry<this.nMaxWriteTry);
 // Check if bit succusfully cleared
-    if (this.bitRead(STATUS0[0], 0)) {
+    if (this.bitRead(this.STATUS0[0], 0)) {
         console.log("ERROR: RESET_ON bit NOT cleared, nTry: ");
         console.log(nTry);
         console.log("STATUS0[0]: ");
-        console.log(STATUS0[0].toString(2));
+        console.log(this.STATUS0[0].toString(2));
         while (true) {}  // LOOP forever  on failure
     } else {
         console.log("RESET_ON bit cleared, nTry: ");
         console.log(nTry);
         console.log("STATUS0[0]: ");
-        console.log(STATUS0[0].toString(2));
+        console.log(this.STATUS0[0].toString(2));
     }
 
     this.UNLOCK_REG()
@@ -282,10 +284,9 @@ ADE7912.prototype.dataReady_ISR = function () {
 //
 // }
 
-while (true) {
-    this.loop ()
-}
-ADE7912.prototype.loop = function () {
+
+
+ADE7912.prototype.loop_ISR = function () {
     if ((this.currentMillis - this.previousWriteMillis) > this.writePeriodMillis) {
         // dettach interrupt so write won't be messed up
         clearWatch();//ID??
@@ -309,9 +310,6 @@ ADE7912.prototype.loop = function () {
 
     }
 }
-
-
-//////////////////////////EXPORTS//////////////////////////////////////////////
 
 
 
