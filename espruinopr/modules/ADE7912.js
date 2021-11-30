@@ -3,6 +3,7 @@
  library for multiple chips
 */
 
+
 //////////////////////////EXPORTS//////////////////////////////////////////////
 exports.device = function(c) {
     c = c || {};
@@ -17,8 +18,9 @@ let ADE7912 = function (c) {
     c = c || {};
     // this.spiS = new c.SPI(); //software SPI
     //this.VRef = c.vref || 1.2;
-    this.CSpin = c.CSpin || P5;// P0
-    this.DRpin = c.DRpin || P4; //P4
+
+    this.CSpin = c.CSpin || B1;// P0
+    this.DRpin = c.DRpin || C3; //P4
     this.SPI = c.SPI || SPI1; // Hardware SPI
     this.mosiPin = c.mosiPin || A7; //P3
     this.misoPin = c.misoPin || A6; //P2
@@ -28,13 +30,13 @@ let ADE7912 = function (c) {
     this.IWV = new Uint24Array (1); // ?????
     this.V1WV = new Uint24Array (1);
     this.V2WV = new Uint24Array (1);
-    this.ADC_CRC = new Array (2);// ADC_CRC[2];
-    this.STATUS0 = new Array (1); //STATUS0[1];
-    this.CNT_SNAPSHOT= new Array (2); //CNT_SNAPSHOT[2];
-    this.ADC_CRC_burst = new Array (2); //ADC_CRC_burst[2];
-    this.CONFIG = new Array (1); //CONFIG[1];
-    this.TEMPOS = new Array (1); //TEMPOS[1];
-    this.EMI_CTRL = new Array (1); //EMI_CTRL[1];
+    this.ADC_CRC = new Uint16Array (2);// ADC_CRC[2];
+    this.STATUS0 = new Uint16Array (1); //STATUS0[1];
+    this.CNT_SNAPSHOT= new Uint16Array (2); //CNT_SNAPSHOT[2];
+    this.ADC_CRC_burst = new Uint16Array (2); //ADC_CRC_burst[2];
+    this.CONFIG = new Uint8Array (1); //CONFIG[1];
+    this.TEMPOS = new Uint8Array (1); //TEMPOS[1];
+    this.EMI_CTRL = new Uint8Array (1); //EMI_CTRL[1];
 
 };
 
@@ -123,71 +125,21 @@ ADE7912.prototype.init_chip = function (){
     digitalWrite(this.CSpin,1);
     //SPI?
     this.init();//SPI
-
+    this.ReadSTATUS();
     // Read STATUS0 register, until Bit 0 (RESET_ON) is cleared:
-    //let STATUS0;
-    this.STATUS0[0] = 0b11111111;
-    let nTry = 0;
-    do {
-        this.readMultBytes(this.STATUS0_READ, this.STATUS0); //????
-        nTry++;
-    }
-    while (this.bitRead(this.STATUS0_READ, this.STATUS0[0],0) && nTry<this.nMaxWriteTry);
-// Check if bit succusfully cleared
-    if (this.bitRead(this.STATUS0[0], 0)) {
-        console.log("ERROR: RESET_ON bit NOT cleared, nTry: ");
-        console.log(nTry);
-        console.log("STATUS0[0]: ");
-       // console.log(this.STATUS0[0].toString(2));
-        console.log(this.STATUS0[0]);
-       // while (true) {}  // LOOP forever  on failure
-    } else {
-        console.log("RESET_ON bit cleared, nTry: ");
-        console.log(nTry);
-        console.log("STATUS0[0]: ");
-        console.log(this.STATUS0[0]);
-    }
-
     this.UNLOCK_REG()
     console.log("Registers unlocked!");
     // Initialize CONFIG register with bit 0
-    let writeSuccess1;
-    writeSuccess1 = this.writeADE7912_check(this.CONFIG_WRITE, 0b00001000, this.CONFIG_READ);
-// delay!!!
-    this.readMultBytes(this.CONFIG_READ, this.CONFIG, 1);
-    if (writeSuccess1) {
-        console.log("CONFIG write success!");
-        console.log("CONFIG[0]: ");
-        console.log(this.CONFIG[0]);
-    } else {
-        console.log("ERROR: CONFIG Write Failed");
-        console.log("CONFIG[0]: ");
-        console.log(this.CONFIG[0]);
-       // while (true) {}  // LOOP forever  on failure
-    }
+    this.CONFIG_INIT();
+    this.EMI_CTRL_REG();
+// Set the EMI_CTRL register; and check written correctly:
 
 // // Read temperature offset register:
     this.readMultBytes(this.TEMPOS_READ, this.TEMPOS, 1);//??
     console.log("TEMPOS: ");
     console.log(this.TEMPOS[0]);
 
-// Set the EMI_CTRL register; and check written correctly:
-    let writeSuccess2 = this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ);
-
-    this.readMultBytes(this.EMI_CTRL_READ, this.EMI_CTRL, 1);
-    if (writeSuccess2) {
-        console.log("EMI_CTRL write success!");
-        console.log("EMI_CTRL[0]: ");
-        console.log(this.EMI_CTRL[0]);
-    } else {
-        console.log("ERROR: EMI_CTRL Write Failed");
-        console.log("EMI_CTRL[0]: ");
-        console.log(this.EMI_CTRL[0]);
-       // while (true) {}  // LOOP forever  on failure
-    }
-
-    this.writeADE7912(this.SYNC_SNAP_WRITE, 0b00000001);
-    console.log("SYNC_SNAP Register Set!");
+    this.SYNC_SNAP ();
 
     this.LOCK_REG();
     console.log("Registers locked!");
@@ -218,13 +170,14 @@ ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
     let nTry = 0;
     //let nMaxWriteTry;
     do {
-        digitalWrite(this.CSpin, 0)
-        this.SPI.send(writeTo);
-        this.SPI.send(writeMsg);
+        digitalWrite(this.CSpin, 0);
+        this.SPI.write(writeTo, writeMsg);
+        // this.SPI.send(writeTo);
+        // this.SPI.send(writeMsg);
 
         digitalWrite(this.CSpin, 1);
 
-        let readBack = new Array (1) //
+        let readBack = new Array (1); //
         this.readMultBytes(readFrom, readBack, 1);
         success = (readBack[0] == writeMsg);
         nTry++;
@@ -234,8 +187,9 @@ ADE7912.prototype.writeADE7912_check = function (writeTo, writeMsg, readFrom) {
 //write ADE7912
 ADE7912.prototype.writeADE7912 = function (writeREG, writeDATA) {
     digitalWrite(this.CSpin,0);
-    this.SPI.write(writeREG);
-    this.SPI.write(writeDATA);
+    this.SPI.write(writeREG, writeDATA);
+    // this.SPI.write(writeREG);
+    // this.SPI.write(writeDATA);
     digitalWrite(this.CSpin,1);
 }
 // Sync
@@ -278,6 +232,43 @@ ADE7912.prototype.dataReady_ISR = function () {
     digitalWrite(this.CSpin, 1);
     this.microsForBurstRead = this.micros - this.microsPreviousRead;
 }
+
+//Config INIT
+ADE7912.prototype.CONFIG_INIT = function () {
+
+    // delay!!!
+    this.readMultBytes(this.CONFIG_READ, this.CONFIG, 1);
+    if (this.writeADE7912_check(this.CONFIG_WRITE, 0b00001000, this.CONFIG_READ)) {
+        console.log("CONFIG write success!");
+        console.log("CONFIG[0]: ");
+        console.log(this.CONFIG[0]);
+    } else {
+        console.log("ERROR: CONFIG Write Failed");
+        console.log("CONFIG[0]: ");
+        console.log(this.CONFIG[0]);
+        //while (true) {}  // LOOP forever  on failure
+    }
+}
+//EMI_CTRL_REG
+ADE7912.prototype.EMI_CTRL_REG = function () {
+    this.readMultBytes(this.EMI_CTRL_READ, this.EMI_CTRL, 1);
+    if (this.writeADE7912_check(this.EMI_CTRL_WRITE, 0b01010101, this.EMI_CTRL_READ)) {
+        console.log("EMI_CTRL write success!");
+        console.log("EMI_CTRL[0]: ");
+        console.log(this.EMI_CTRL[0]);
+    } else {
+        console.log("ERROR: EMI_CTRL Write Failed");
+        console.log("EMI_CTRL[0]: ");
+        console.log(this.EMI_CTRL[0]);
+        // while (true) {}  // LOOP forever  on failure
+    }
+}
+//SYNC_SNAP
+ADE7912.prototype.SYNC_SNAP = function () {
+    this.writeADE7912(this.SYNC_SNAP_WRITE, 0b00000001);
+    console.log("SYNC_SNAP Register Set!");
+}
+
 ///////////////////////////////////////// LOOP/////////////////////////////////////
 
 ADE7912.prototype.loop_ISR = function () {
@@ -288,6 +279,9 @@ ADE7912.prototype.loop_ISR = function () {
         this.previousWriteMillis = this.currentMillis;//?
         //this.writeToSerial(); //function
         // re-attach interrupt
+
+        setWatch (this.dataReady_ISR, this.DRpin) // LOW
+
         setWatch (this.dataReady_ISR, this.DRpin, //()
             {
                 repeat: true,
@@ -305,7 +299,8 @@ ADE7912.prototype.loop_ISR = function () {
         console.log("ADE7912 Synced");
         // re-attach interrupt
         //attachInterrupt(digitalPinToInterrupt(dataReadyPin), dataReady_ISR, FALLING);// LOW
-        setWatch(this.dataReady_ISR, this.DRpin, //()
+       // setWatch (this.dataReady_ISR, this.DRpin) // LOW
+        setWatch(this.dataReady_ISR, this.DRpin,
             {
                 repeat: true,
                 edge: 'falling',
@@ -315,16 +310,40 @@ ADE7912.prototype.loop_ISR = function () {
     }
 }
 
+// READ STATUS
+ADE7912.prototype.ReadSTATUS = function (){
+    this.STATUS0[0] = 0b11111111;
+    let nTry = 0;
+    do {
+        this.readMultBytes(this.STATUS0_READ, this.STATUS0); //????
+        nTry++;
+    }
+    while (this.bitRead(this.STATUS0_READ, this.STATUS0[0],0) && nTry<this.nMaxWriteTry);
+// Check if bit succusfully cleared
+    if (this.bitRead(this.STATUS0[0], 0)) {
+        console.log("ERROR: RESET_ON bit NOT cleared, nTry: ");
+        console.log(nTry);
+        console.log("STATUS0[0]: ");
+        // console.log(this.STATUS0[0].toString(2));
+        console.log(this.STATUS0[0]);
+        // while (true) {}  // LOOP forever  on failure
+    } else {
+        console.log("RESET_ON bit cleared, nTry: ");
+        console.log(nTry);
+        console.log("STATUS0[0]: ");
+        console.log(this.STATUS0[0]);
+    }
+}
 /////////////////////////SHOW/////////////////
 
 ADE7912.prototype.SHOW = function() {
 
     console.log("I");
-    console.log(this.IWV);
+    console.log(this.IWV.toString(2));
     console.log("V1");
-    console.log(this.V1WV);
-    console.log("V2");
-    console.log(this.V2WV);
+    console.log(this.V1WV.toString(2));
+    // console.log("V2");
+    // console.log(this.V2WV);
 
    // console.log("CONFIG= ");
     // console.log(this.CONFIG[0].toString(2));
@@ -343,5 +362,26 @@ ADE7912.prototype.SHOW = function() {
 }
 
 
-
-
+// iskra js 7912
+//
+// let ADE7912 = require('ADE7912');
+// let ade7912 = ADE7912.device({
+//     //CSpin: P5,
+//     // DRpin: P4
+// });
+//
+//
+//
+// ade7912.init();
+// ade7912.init_chip();
+//
+// setInterval(function() {
+//     ade7912.loop_ISR();
+// }, 5000);
+//
+//
+//
+// ade7912.dataReady_ISR();
+// setInterval(function() {
+//     v1 = ade7912.SHOW();
+// }, 5000);
