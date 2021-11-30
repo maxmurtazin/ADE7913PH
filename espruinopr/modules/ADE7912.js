@@ -17,8 +17,8 @@ let ADE7912 = function (c) {
     c = c || {};
     // this.spiS = new c.SPI(); //software SPI
     //this.VRef = c.vref || 1.2;
-    this.CSpin = c.CSpin || B11;// P0
-    this.DRpin = c.DRpin || C3; //P4
+    this.CSpin = c.CSpin || P5;// P0
+    this.DRpin = c.DRpin || P4; //P4
     this.SPI = c.SPI || SPI1; // Hardware SPI
     this.mosiPin = c.mosiPin || A7; //P3
     this.misoPin = c.misoPin || A6; //P2
@@ -288,7 +288,7 @@ ADE7912.prototype.loop_ISR = function () {
         this.previousWriteMillis = this.currentMillis;//?
         //this.writeToSerial(); //function
         // re-attach interrupt
-        setWatch (this.dataReady_ISR(), this.DRpin,
+        setWatch (this.dataReady_ISR, this.DRpin, //()
             {
                 repeat: true,
                 edge: 'falling',
@@ -305,7 +305,7 @@ ADE7912.prototype.loop_ISR = function () {
         console.log("ADE7912 Synced");
         // re-attach interrupt
         //attachInterrupt(digitalPinToInterrupt(dataReadyPin), dataReady_ISR, FALLING);// LOW
-        setWatch(this.dataReady_ISR(), this.DRpin,
+        setWatch(this.dataReady_ISR, this.DRpin, //()
             {
                 repeat: true,
                 edge: 'falling',
@@ -319,9 +319,11 @@ ADE7912.prototype.loop_ISR = function () {
 
 ADE7912.prototype.SHOW = function() {
 
-
+    console.log("I");
     console.log(this.IWV);
+    console.log("V1");
     console.log(this.V1WV);
+    console.log("V2");
     console.log(this.V2WV);
 
    // console.log("CONFIG= ");
